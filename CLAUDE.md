@@ -6,9 +6,9 @@ Akshat's independently maintained copy of the MIT-licensed Handy desktop dictati
 Handy is the production-quality Windows, macOS, and Linux foundation replacing the earlier
 WhimprFlow proof of concept; mobile clients are not part of the current implementation.
 
-**Status:** Active foundation migration — upstream source and history are imported, while the
-Windows source build, local runtime, and private GitHub publication remain unverified. Retire the
-WhimprFlow-derived project only after this checkout builds and launches successfully on Windows.
+**Status:** Active desktop foundation — the Windows source build and local startup are verified,
+and this imported history is published in Akshat's private `akshatksingh18/handy` repository.
+Interactive microphone-to-text behavior and signed installer packaging remain unverified.
 
 ## Files
 
@@ -16,6 +16,8 @@ WhimprFlow-derived project only after this checkout builds and launches successf
   troubleshooting; read before changing user-facing behavior or support claims.
 - `BUILD.md` — canonical platform prerequisites and source-build workflow; read before building or
   changing dependencies, packaging, or release behavior.
+- `windows-local-setup.md` — this machine's verified Windows toolchain, build commands, runtime
+  smoke-test evidence, and remaining verification limits; read before rebuilding here.
 - `upstream-instructions.md` — imported upstream development contract, architecture map, commands,
   code style, platform notes, and contribution rules; follow it for all code changes.
 - `AGENTS.md` — compatibility pointer to this canonical `CLAUDE.md`; do not store independent
@@ -38,8 +40,8 @@ WhimprFlow-derived project only after this checkout builds and launches successf
 - The initial Windows acceptance gate requires dependency installation, a successful source build,
   and a launched local process that remains alive long enough to initialize its runtime. A live
   microphone-to-text test still requires Akshat's interactive permission and speech input.
-- Retire the WhimprFlow-derived checkout and private repository only after the Windows acceptance
-  gate above passes and this project is recoverable from its own private remote.
+- Keep the archived WhimprFlow repository as a recoverable historical reference; Handy is the
+  active desktop base.
 - Follow the workspace material-change documentation gate: synchronize affected current-state
   sources, including `README.md`, `BUILD.md`, applicable release/configuration documents, and this
   status whenever code, architecture, platforms, build/release behavior, privacy, or integrations
