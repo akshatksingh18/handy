@@ -199,8 +199,26 @@ pub fn apply_custom_words(text: &str, custom_words: &[String], threshold: f64) -
             }
         }
 
-        if let Some((n, replacement, _)) = best_match {
+        if let Some((n, replacement, score)) = best_match {
             let ngram_words = &words[i..i + n];
+            // A loose match must not swallow an ordinary word before a better
+            // match for the same term ("a post-Gree SQL" -> "a PostgreSQL").
+            let better_suffix = (1..n).any(|offset| {
+                find_best_match(
+                    &build_ngram(&ngram_words[offset..]),
+                    custom_words,
+                    &custom_word_match_keys,
+                    threshold,
+                )
+                .is_some_and(|(suffix_word, suffix_score)| {
+                    suffix_word == replacement && suffix_score < score
+                })
+            });
+            if better_suffix {
+                result.push(words[i].to_string());
+                i += 1;
+                continue;
+            }
             // Extract punctuation from first and last words of the n-gram.
             let (prefix, _) = extract_punctuation(ngram_words[0]);
             let (_, suffix) = extract_punctuation(ngram_words[n - 1]);
@@ -808,6 +826,22 @@ mod tests {
         let custom_words = vec!["OpenAI".to_string(), "GPT".to_string()];
         let result = apply_custom_words(text, &custom_words, 0.5);
         assert_eq!(result, "OpenAI GPT model");
+    }
+
+    #[test]
+    fn test_apply_custom_words_preserves_article_before_split_technical_term() {
+        let words = vec!["PostgreSQL".to_string(), "Kubernetes".to_string(), "REST API".to_string()];
+        assert_eq!(
+            apply_custom_words("We should review a post-Gree SQL Kubernetes and the REST API before release", &words, 0.18),
+            "We should review a PostgreSQL Kubernetes and the REST API before release"
+        );
+    }
+
+    #[test]
+    fn test_apply_custom_words_preserves_prefix_before_exact_suffix() {
+        let words = vec!["OpenAI".to_string()];
+        assert_eq!(apply_custom_words("use an Open AI model", &words, 0.5), "use an OpenAI model");
+        assert_eq!(apply_custom_words("not Open AI", &words, 0.5), "not OpenAI");
     }
 
     #[test]

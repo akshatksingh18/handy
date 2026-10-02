@@ -117,6 +117,14 @@ async changePreloadModelSetting(enabled: boolean) : Promise<Result<null, string>
     else return { status: "error", error: e as any };
 }
 },
+async changePreferBatchTranscriptionSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_prefer_batch_transcription_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e as any };
+}
+},
 async changeOverlayPositionSetting(position: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_overlay_position_setting", { position }) };
@@ -966,7 +974,7 @@ streamTextEvent: "stream-text-event"
  * Field-level defaults below take precedence where present.
  */
 export type AppSettings = { 
-roman_hinglish_enabled?: boolean; preload_model?: boolean;
+roman_hinglish_enabled?: boolean; preload_model?: boolean; prefer_batch_transcription?: boolean;
 /**
  * Internal settings schema marker for one-time migrations. Fresh installs
  * start at the current version; existing stores missing this key are

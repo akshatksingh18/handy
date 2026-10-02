@@ -8,8 +8,10 @@
 > batch/streaming startup warm-up and latency diagnostics, with the old Roman converter off;
 > see [voice-workspace-features.md](voice-workspace-features.md)
 > and [windows-local-setup.md](windows-local-setup.md). Akshat accepts the current Parakeet
-> English speed; technical-word accuracy, insertion/reliability coverage and signed packaging
-> remain open. Dedicated spoken self-correction is not yet implemented.
+> English streaming speed, but live E03 failed PostgreSQL spelling and punctuation. This fork adds
+> opt-in full-recording recognition and safer manual dictionary matching for a new quality test.
+> Natural list commas, live quality-profile acceptance, insertion/reliability coverage and signed
+> packaging remain open. Dedicated spoken self-correction is not yet implemented.
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
 

@@ -157,6 +157,10 @@
   "settings": {
     "voiceWorkspace": {
       "title": "Voice Workspace (experimental)",
+      "preferBatch": {
+        "label": "Use full-recording recognition",
+        "description": "Recognize the complete recording on release instead of using streaming text. Can improve technical words and sentence punctuation in short dictation; longer recordings can take more time after release. No live word preview. Restart Handy after changing this so startup warm-up primes the chosen path."
+      },
       "retryRomanHistory": "Retry this recording to create Roman-Hinglish output. Raw recognition is hidden by default.",
       "showRaw": "Show raw recognition (recovery only)",
       "hideRaw": "Hide raw recognition",

@@ -30,6 +30,17 @@ export const GeneralSettings: React.FC = () => {
       <ModelSettingsCard />
       <SettingsGroup title={t("settings.voiceWorkspace.title")}>
         <ToggleSwitch
+          checked={getSetting("prefer_batch_transcription") ?? false}
+          onChange={(enabled) =>
+            updateSetting("prefer_batch_transcription", enabled)
+          }
+          isUpdating={isUpdating("prefer_batch_transcription")}
+          label={t("settings.voiceWorkspace.preferBatch.label")}
+          description={t("settings.voiceWorkspace.preferBatch.description")}
+          descriptionMode="inline"
+          grouped={true}
+        />
+        <ToggleSwitch
           checked={getSetting("roman_hinglish_enabled") ?? false}
           onChange={(enabled) =>
             updateSetting("roman_hinglish_enabled", enabled)

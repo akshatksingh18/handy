@@ -527,10 +527,11 @@ impl ShortcutAction for TranscribeAction {
             .state::<Arc<ModelManager>>()
             .get_model_info(&settings.selected_model);
 
+        // Respect the explicit full-recording preference as well as capability.
         // Use the app-facing model capability as the single pre-recording source
         // for live streaming decisions. Unknown support is represented as false
         // until the model registry is updated by discovery or runtime load.
-        let model_supports_streaming = selected_model_info
+        let model_supports_streaming = !settings.prefer_batch_transcription && selected_model_info
             .as_ref()
             .map(|m| m.supports_streaming)
             .unwrap_or(false);

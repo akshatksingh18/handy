@@ -425,6 +425,9 @@ pub struct AppSettings {
     /// Load the selected downloaded model on GUI startup, without opening mic.
     #[serde(default)]
     pub preload_model: bool,
+    /// Opt-in full-recording recognition instead of streaming final text.
+    #[serde(default)]
+    pub prefer_batch_transcription: bool,
     #[serde(default = "default_overlay_position")]
     pub overlay_position: OverlayPosition,
     #[serde(default = "default_debug_mode")]
@@ -937,6 +940,7 @@ pub fn get_default_settings() -> AppSettings {
         selected_language: "auto".to_string(),
         roman_hinglish_enabled: false,
         preload_model: false,
+        prefer_batch_transcription: false,
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),

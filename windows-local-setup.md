@@ -27,6 +27,7 @@ $deps = Join-Path $env:LOCALAPPDATA 'handy-build-deps'
 $env:VULKAN_SDK = Join-Path $deps 'VulkanSDK\1.4.309.0'
 $env:ORT_LIB_LOCATION = Join-Path $deps 'onnxruntime-win-x64-1.24.2\lib'
 $env:ORT_PREFER_DYNAMIC_LINK = '1'
+$env:CARGO_NET_OFFLINE = 'true' # use the installed dependency cache
 $env:CMAKE_PREFIX_PATH = (Join-Path $deps 'vcpkg\installed\x64-windows').Replace('\', '/')
 $cmakeBin = 'C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin'
 $env:PATH = "$(Join-Path $env:APPDATA 'npm');$env:VULKAN_SDK\Bin;$cmakeBin;$env:PATH"
@@ -47,10 +48,14 @@ model integrity and aggregate results are owned by `../voice-workspace/setup.md`
 `../voice-workspace/performance.md`. Turbo's updated live test still took 3–4 seconds and Hindi
 output failed; active scope is now English only. Parakeet Unified EN Q8 is the faster candidate,
 with the old converter disabled. Akshat accepts this profile's live English speed; no exact
-new latency or p95 is reported. Technical-word accuracy, the broader insertion/reliability suite,
+new latency or p95 is reported. Its later live E03 test failed PostgreSQL and punctuation.
+The new opt-in full-recording mode plus dictionary prefix fix needs live retesting; natural list
+commas are not solved. The broader insertion/reliability suite,
 spoken self-correction and signed packaging remain open. No cleanup model is configured.
-The current English optimization's Tauri release build passed with embedded production assets;
-the isolated GUI stays alive after Parakeet/NVIDIA load and discarded-silence streaming priming.
+The full-recording quality update's offline Tauri release build passed with embedded production
+assets; all 14 runtime DLL hashes match. The deployed app passes transcript-free headless batch
+inference on the saved synthetic E03 clip. The quality GUI remains alive for at least 60 seconds
+after NVIDIA load and batch priming; its physical microphone/paste retest remains open.
 TypeScript/frontend build, local ESLint and native diagnostic/regression checks passed. Current
 executable/model hashes and timings remain owned by the linked Voice Workspace documents.
 Fork-specific implemented behavior and checks are indexed in voice-workspace-features.md.
@@ -64,10 +69,13 @@ Rust toolchain; do not claim those checks passed without installing/running them
 ## Local ASR diagnostic
 
 `src-tauri/examples/asr_latency.rs` benchmarks batch or real-time-paced native streaming without
-microphone, VAD, app text filters, history or paste. It emits aggregate JSON only, never recognized
+microphone, VAD, history or paste. Optional local vocabulary scoring uses the app text matcher
+separately from raw ASR. It emits aggregate JSON only, never recognized
 text. The tested build on this machine linked the existing release `transcribe_cpp`, `hound` and
-`serde_json` rlibs with `rustc`, plus the existing native `transcribe.lib`; no dependency download
-or full GUI rebuild was required for that diagnostic. Its scoring regression test passes.
+`serde_json`, `natural`, `once_cell`, `regex` and `strsim` rlibs with `rustc`, plus the existing native
+`transcribe.lib`; no dependency download was required. All 48 standalone diagnostic/text-filter
+regressions pass, including critical tokens, dictionary prefix preservation and raw punctuation
+boundaries. Optional gold/vocabulary inputs and audio stay local; no transcript text is emitted.
 
 For a conventional rebuild after configuring the same native environment above:
 

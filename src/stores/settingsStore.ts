@@ -144,6 +144,12 @@ const settingUpdaters: {
     const result = await commands.changePreloadModelSetting(value as boolean);
     if (result.status === "error") throw new Error(result.error);
   },
+  prefer_batch_transcription: async (value) => {
+    const result = await commands.changePreferBatchTranscriptionSetting(
+      value as boolean,
+    );
+    if (result.status === "error") throw new Error(result.error);
+  },
   overlay_position: (value) =>
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),

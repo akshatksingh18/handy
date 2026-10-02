@@ -728,7 +728,7 @@ impl TranscriptionManager {
                         ..Default::default()
                     };
                     let silence = vec![0.0; 16_000];
-                    let warm_result = if caps.supports_streaming {
+                    let warm_result = if caps.supports_streaming && !get_settings(&self.app_handle).prefer_batch_transcription {
                         session.stream(&warm_options, &StreamOptions::default()).and_then(|mut stream| {
                             stream.feed(&silence)?;
                             stream.finalize()?;
