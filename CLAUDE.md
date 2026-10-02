@@ -12,6 +12,8 @@ Interactive microphone-to-text behavior and signed installer packaging remain un
 
 ## Files
 
+- `../voice-workspace/CLAUDE.md` — owning context for the standalone integrated voice app;
+  requirements/research/evaluation live there, while this fork remains the desktop base.
 - `README.md` — upstream product behavior, installation, limitations, release verification, and
   troubleshooting; read before changing user-facing behavior or support claims.
 - `BUILD.md` — canonical platform prerequisites and source-build workflow; read before building or
