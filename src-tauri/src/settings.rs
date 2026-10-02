@@ -419,6 +419,12 @@ pub struct AppSettings {
     pub translate_to_english: bool,
     #[serde(default = "default_selected_language")]
     pub selected_language: String,
+    /// Opt-in Hindi script conversion, independent of optional LLM cleanup.
+    #[serde(default)]
+    pub roman_hinglish_enabled: bool,
+    /// Load the selected downloaded model on GUI startup, without opening mic.
+    #[serde(default)]
+    pub preload_model: bool,
     #[serde(default = "default_overlay_position")]
     pub overlay_position: OverlayPosition,
     #[serde(default = "default_debug_mode")]
@@ -929,6 +935,8 @@ pub fn get_default_settings() -> AppSettings {
         selected_output_device: None,
         translate_to_english: false,
         selected_language: "auto".to_string(),
+        roman_hinglish_enabled: false,
+        preload_model: false,
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),

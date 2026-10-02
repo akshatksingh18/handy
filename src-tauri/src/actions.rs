@@ -15,7 +15,7 @@ use crate::utils::{
 };
 use crate::TranscriptionCoordinator;
 use ferrous_opencc::{config::BuiltinConfig, OpenCC};
-use log::{debug, error, warn};
+use log::{debug, error, info, warn};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::future::Future;
@@ -424,11 +424,14 @@ pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
     post_process: bool,
-) -> ProcessedTranscription {
+) -> Result<ProcessedTranscription, String> {
     let settings = get_settings(app);
     let mut final_text = transcription.to_string();
     let mut post_processed_text: Option<String> = None;
     let mut post_process_prompt: Option<String> = None;
+    if settings.roman_hinglish_enabled && settings.translate_to_english {
+        return Err("Turn off Translate to English to use Roman Hinglish; nothing pasted".into());
+    }
 
     // Resolve the language the transcription actually ran in (the persisted
     // intent coerced against the loaded model's capabilities) so OpenCC keys off
@@ -438,6 +441,10 @@ pub(crate) async fn process_transcription_output(
         maybe_convert_chinese_variant(&effective_language, transcription).await
     {
         final_text = converted_text;
+    }
+
+    if settings.roman_hinglish_enabled {
+        final_text = crate::audio_toolkit::hinglish::romanize_hindi(&final_text)?;
     }
 
     if post_process {
@@ -455,15 +462,22 @@ pub(crate) async fn process_transcription_output(
                 }
             }
         }
-    } else if final_text != transcription {
+    }
+
+    // Cleanup must not reintroduce Hindi script. Persist delivery text even
+    // when only script conversion (not an LLM) was requested.
+    if settings.roman_hinglish_enabled {
+        final_text = crate::audio_toolkit::hinglish::romanize_hindi(&final_text)?;
+    }
+    if final_text != transcription || post_processed_text.is_some() {
         post_processed_text = Some(final_text.clone());
     }
 
-    ProcessedTranscription {
+    Ok(ProcessedTranscription {
         final_text,
         post_processed_text,
         post_process_prompt,
-    }
+    })
 }
 
 impl ShortcutAction for TranscribeAction {
@@ -694,6 +708,7 @@ impl ShortcutAction for TranscribeAction {
 
             let stop_recording_time = Instant::now();
             if let Some(samples) = rm.stop_recording(&binding_id, cancel_generation) {
+                let capture_ms = stop_recording_time.elapsed().as_millis();
                 debug!(
                     "Recording stopped and samples retrieved in {:?}, sample count: {}",
                     stop_recording_time.elapsed(),
@@ -741,6 +756,7 @@ impl ShortcutAction for TranscribeAction {
                         Ok(_) => tm.transcribe(samples),
                         Err(err) => Err(err),
                     };
+                    let asr_ms = transcription_time.elapsed().as_millis();
 
                     // Await WAV save and verify
                     let wav_saved = match wav_handle.await {
@@ -788,7 +804,8 @@ impl ShortcutAction for TranscribeAction {
                                     show_processing_overlay(&ah);
                                 }
                             }
-                            let Some(processed) = complete_unless_cancelled(
+                            let conversion_time = Instant::now();
+                            let Some(processed_result) = complete_unless_cancelled(
                                 process_transcription_output(&ah, &transcription, post_process),
                                 || rm.was_cancelled_since(cancel_generation),
                             )
@@ -799,6 +816,22 @@ impl ShortcutAction for TranscribeAction {
                                 set_tray_state(&ah, TrayIconState::Idle);
                                 return;
                             };
+                            let processed = match processed_result {
+                                Ok(processed) => processed,
+                                Err(err) => {
+                                    // Preserve the recording and raw recognition only for
+                                    // explicit recovery; never silently deliver wrong script.
+                                    if wav_saved {
+                                        let _ = hm.save_entry(file_name, transcription, post_process, None, None);
+                                    }
+                                    error!("Output conversion failed: {}", err);
+                                    let _ = ah.emit("transcription-error", err);
+                                    utils::hide_recording_overlay(&ah);
+                                    set_tray_state(&ah, TrayIconState::Idle);
+                                    return;
+                                }
+                            };
+                            let output_ms = conversion_time.elapsed().as_millis();
 
                             if rm.was_cancelled_since(cancel_generation) {
                                 debug!("Transcription operation cancelled before paste");
@@ -837,9 +870,10 @@ impl ShortcutAction for TranscribeAction {
                                     }
 
                                     match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
+                                        Ok(()) => info!(
+                                            "dictation_latency capture_ms={} asr_ms={} output_ms={} paste_ms={} stop_to_paste_ms={}",
+                                            capture_ms, asr_ms, output_ms,
+                                            paste_time.elapsed().as_millis(), stop_time.elapsed().as_millis()
                                         ),
                                         Err(e) => {
                                             error!("Failed to paste transcription: {}", e);

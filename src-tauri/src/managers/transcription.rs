@@ -555,7 +555,7 @@ impl TranscriptionManager {
 
         // Create appropriate engine based on model type
 
-        let loaded_engine = match model_info.engine_type {
+        let mut loaded_engine = match model_info.engine_type {
             EngineType::TranscribeCpp => {
                 // The whisper backend is chosen at load time (transcribe-cpp has
                 // no runtime global). With an explicit `device_index` (the
@@ -706,6 +706,31 @@ impl TranscriptionManager {
                 LoadedEngine::Cohere(engine)
             }
         };
+
+        // Opt-in warm-up primes the actual Whisper encoder/decoder, not just
+        // the model file. Synthetic silence is discarded: no microphone,
+        // output events, history, clipboard or LLM. Keep loading state until
+        // this finishes so users do not confuse loaded weights with readiness.
+        if get_settings(&self.app_handle).preload_model {
+            if let LoadedEngine::TranscribeCpp(session) = &mut loaded_engine {
+                if session.model().arch() == "whisper" {
+                    let warm_start = Instant::now();
+                    let warm_options = RunOptions {
+                        language: Some("en".into()),
+                        family: Some(RunExtension::Whisper(WhisperRunOptions {
+                            temperature: Some(0.0),
+                            temperature_inc: Some(0.0),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    };
+                    match session.run(&vec![0.0; 16_000], &warm_options) {
+                        Ok(_) => info!("dictation_warmup_ms={}", warm_start.elapsed().as_millis()),
+                        Err(err) => warn!("Whisper startup warm-up failed; first dictation may be slower: {}", err),
+                    }
+                }
+            }
+        }
 
         // Update the current engine and model ID
         {

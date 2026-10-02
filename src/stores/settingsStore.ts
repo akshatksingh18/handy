@@ -128,10 +128,22 @@ const settingUpdaters: {
     ),
   recording_retention_period: (value) =>
     commands.updateRecordingRetentionPeriod(value as string),
-  translate_to_english: (value) =>
-    commands.changeTranslateToEnglishSetting(value as boolean),
+  translate_to_english: async (value) => {
+    const result = await commands.changeTranslateToEnglishSetting(
+      value as boolean,
+    );
+    if (result.status === "error") throw new Error(result.error);
+  },
   selected_language: (value) =>
     commands.changeSelectedLanguageSetting(value as string),
+  roman_hinglish_enabled: async (value) => {
+    const result = await commands.changeRomanHinglishSetting(value as boolean);
+    if (result.status === "error") throw new Error(result.error);
+  },
+  preload_model: async (value) => {
+    const result = await commands.changePreloadModelSetting(value as boolean);
+    if (result.status === "error") throw new Error(result.error);
+  },
   overlay_position: (value) =>
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),
@@ -328,6 +340,10 @@ export const useSettingsStore = create<SettingsStore>()(
         const updater = settingUpdaters[key];
         if (updater) {
           await updater(value);
+          if (key === "roman_hinglish_enabled") {
+            // Enabling script conversion also disables translation in Rust.
+            await get().refreshSettings();
+          }
         } else if (key !== "bindings" && key !== "selected_model") {
           console.warn(`No handler for setting: ${String(key)}`);
         }

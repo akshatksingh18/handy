@@ -631,8 +631,36 @@ pub fn apply_window_theme(app: &AppHandle, theme: Theme) {
 #[specta::specta]
 pub fn change_translate_to_english_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
+    if enabled && settings.roman_hinglish_enabled {
+        return Err("Roman Hinglish preserves Hindi; turn it off before enabling translation".into());
+    }
     settings.translate_to_english = enabled;
     settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_roman_hinglish_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.roman_hinglish_enabled = enabled;
+    if enabled {
+        settings.translate_to_english = false;
+    }
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_preload_model_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.preload_model = enabled;
+    settings::write_settings(&app, settings);
+    if enabled {
+        app.state::<std::sync::Arc<crate::managers::transcription::TranscriptionManager>>()
+            .initiate_model_load();
+    }
     Ok(())
 }
 

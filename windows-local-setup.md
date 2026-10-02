@@ -40,6 +40,15 @@ that executable with `--start-hidden --debug` kept it alive for 20 seconds and i
 `%APPDATA%\com.pais.handy\settings_store.json`, `history.db`, and the WebView2 profile. The
 smoke-test process was stopped afterward.
 
-This verifies build and startup on this Windows machine. A real microphone recording, model
-download, speech transcription, text insertion, GPU inference, and a signed installer have not
-been tested. The upstream [BUILD.md](BUILD.md) remains the general cross-platform build guide.
+Build/startup on this Windows machine are verified. Akshat's initial portable Notepad test did
+capture/transcribe/insert speech, but failed latency, Roman-Hinglish script and acronym acceptance.
+Whisper Small CPU/NVIDIA/Intel inference and approved Turbo/NVIDIA inference were measured locally;
+model integrity and aggregate results are owned by `../voice-workspace/setup.md` and
+`../voice-workspace/performance.md`. Updated live acceptance and signed packaging remain open.
+Fork-specific implemented behavior and checks are indexed in voice-workspace-features.md.
+The upstream [BUILD.md](BUILD.md) remains the general cross-platform guide.
+
+Use the documented Tauri build rather than bare `cargo build --release` for the final GUI:
+Tauri enables the embedded production asset protocol; a bare Cargo release can still have
+the development URL selected. The formatter/Clippy components were absent from this minimal
+Rust toolchain; do not claim those checks passed without installing/running them.

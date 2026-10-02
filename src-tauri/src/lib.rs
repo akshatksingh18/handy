@@ -438,7 +438,11 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
     // Useful on multi-GPU machines to discover the index for --device-index.
     if args.list_devices {
         let devices = crate::managers::transcription::describe_compute_devices();
-        if devices.is_empty() {
+        if args.json {
+            println!("{}", serde_json::to_string(
+                &crate::managers::transcription::get_available_accelerators()
+            ).expect("accelerator options are serializable"));
+        } else if devices.is_empty() {
             println!("No transcribe-cpp compute devices registered.");
         } else {
             println!("transcribe-cpp compute devices:");
@@ -573,7 +577,17 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
         }
         let t = Instant::now();
         match tm.transcribe(samples.clone()) {
-            Ok(out) => text = out,
+            Ok(out) => {
+                text = if get_settings(app).roman_hinglish_enabled {
+                    match crate::audio_toolkit::hinglish::romanize_hindi(&out) {
+                        Ok(converted) => converted,
+                        Err(error) => {
+                            eprintln!("error: {}", error);
+                            return 1;
+                        }
+                    }
+                } else { out };
+            },
             Err(e) => {
                 eprintln!("error: transcribe failed: {}", e);
                 return 1;
@@ -589,9 +603,7 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
     };
 
     if args.json {
-        println!(
-            "{}",
-            serde_json::json!({
+        let mut report = serde_json::json!({
                 "model": model_id,
                 "requested_device": requested_device,
                 "bound_backend": bound_backend,
@@ -601,8 +613,11 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
                 "best_ms": best_ms,
                 "rtf": rtf,
                 "text": text,
-            })
-        );
+            });
+        if args.stats_only {
+            report.as_object_mut().unwrap().remove("text");
+        }
+        println!("{}", report);
     } else {
         println!(
             "model={} device={} backend={} audio={:.2}s load={}ms best={}ms rtf={:.2}x",
@@ -614,7 +629,9 @@ fn run_headless_transcription(app: &AppHandle, args: &CliArgs) -> i32 {
             best_ms,
             rtf,
         );
-        println!("text: {}", text);
+        if !args.stats_only {
+            println!("text: {}", text);
+        }
     }
     0
 }
@@ -659,6 +676,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_start_hidden_setting,
             shortcut::change_autostart_setting,
             shortcut::change_translate_to_english_setting,
+            shortcut::change_roman_hinglish_setting,
+            shortcut::change_preload_model_setting,
             shortcut::change_selected_language_setting,
             shortcut::change_overlay_position_setting,
             shortcut::change_overlay_style_setting,
@@ -1009,6 +1028,12 @@ pub fn run(cli_args: CliArgs) {
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
             initialize_core_logic(&app_handle);
+
+            // Optional model warm-up is inference-only: no recording or
+            // download. First dictation need not pay cold-load cost.
+            if settings.preload_model && !settings.selected_model.is_empty() {
+                app_handle.state::<Arc<TranscriptionManager>>().initiate_model_load();
+            }
 
             // Secure Input monitor (macOS): detects stuck secure input that
             // silently blocks keyed shortcuts, warns the user, and activates

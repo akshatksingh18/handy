@@ -8,7 +8,9 @@ WhimprFlow proof of concept; mobile clients are not part of the current implemen
 
 **Status:** Active desktop foundation — the Windows source build and local startup are verified,
 and this imported history is published in Akshat's private `akshatksingh18/handy` repository.
-Interactive microphone-to-text behavior and signed installer packaging remain unverified.
+Akshat's initial live Notepad test produced text but failed speed/script/acronym acceptance.
+Experimental Roman-Hinglish delivery and startup preload are implemented; updated live acceptance
+and signed installer packaging remain unverified.
 
 ## Files
 
@@ -20,6 +22,8 @@ Interactive microphone-to-text behavior and signed installer packaging remain un
   changing dependencies, packaging, or release behavior.
 - `windows-local-setup.md` — this machine's verified Windows toolchain, build commands, runtime
   smoke-test evidence, and remaining verification limits; read before rebuilding here.
+- `voice-workspace-features.md` — fork-specific Roman-Hinglish delivery, startup preload,
+  latency diagnostics, regression evidence and limitations; read before dictation changes.
 - `upstream-instructions.md` — imported upstream development contract, architecture map, commands,
   code style, platform notes, and contribution rules; follow it for all code changes.
 - `AGENTS.md` — compatibility pointer to this canonical `CLAUDE.md`; do not store independent

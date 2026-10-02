@@ -15,6 +15,8 @@ import { formatDateTime } from "@/utils/dateFormat";
 import { AudioPlayer, AudioPlayerGroup } from "../../ui/AudioPlayer";
 import { Button } from "../../ui/Button";
 import { copyToClipboard } from "./clipboard";
+import { historyDeliveryText } from "./deliveryText";
+import { useSettings } from "@/hooks/useSettings";
 
 const IconButton: React.FC<{
   onClick: () => void;
@@ -62,6 +64,8 @@ const OpenRecordingsButton: React.FC<OpenRecordingsButtonProps> = ({
 
 export const HistorySettings: React.FC = () => {
   const { t } = useTranslation();
+  const { getSetting } = useSettings();
+  const romanHinglish = getSetting("roman_hinglish_enabled") ?? false;
   const osType = useOsType();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -251,7 +255,12 @@ export const HistorySettings: React.FC = () => {
                 key={entry.id}
                 entry={entry}
                 onToggleSaved={() => toggleSaved(entry.id)}
-                onCopyText={() => copyToClipboard(entry.transcription_text)}
+                onCopyText={() => {
+                  const text = historyDeliveryText(entry, romanHinglish);
+                  return text === undefined
+                    ? Promise.resolve(false)
+                    : copyToClipboard(text);
+                }}
                 getAudioUrl={getAudioUrl}
                 deleteAudio={deleteAudioEntry}
                 retryTranscription={retryHistoryEntry}
@@ -307,8 +316,14 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const { t, i18n } = useTranslation();
   const [showCopied, setShowCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [showRaw, setShowRaw] = useState(false);
+  const { getSetting } = useSettings();
+  const deliveryText = historyDeliveryText(
+    entry,
+    getSetting("roman_hinglish_enabled") ?? false,
+  );
 
-  const hasTranscription = entry.transcription_text.trim().length > 0;
+  const hasTranscription = !!deliveryText?.trim();
 
   const handleLoadAudio = useCallback(
     () => getAudioUrl(entry.file_name),
@@ -435,9 +450,32 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
         {retrying
           ? t("settings.history.transcribing")
           : hasTranscription
-            ? entry.transcription_text
-            : t("settings.history.transcriptionFailed")}
+            ? deliveryText
+            : deliveryText === undefined
+              ? t("settings.voiceWorkspace.retryRomanHistory")
+              : t("settings.history.transcriptionFailed")}
       </p>
+
+      {entry.transcription_text &&
+        entry.transcription_text !== deliveryText && (
+          <div className="pb-2">
+            <button
+              className="text-xs underline"
+              onClick={() => setShowRaw(!showRaw)}
+            >
+              {t(
+                showRaw
+                  ? "settings.voiceWorkspace.hideRaw"
+                  : "settings.voiceWorkspace.showRaw",
+              )}
+            </button>
+            {showRaw && (
+              <p className="text-sm whitespace-pre-wrap select-text">
+                {entry.transcription_text}
+              </p>
+            )}
+          </div>
+        )}
 
       <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
     </div>

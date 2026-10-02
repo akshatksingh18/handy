@@ -2,9 +2,11 @@
 
 > This private repository is Akshat's independently maintained copy of
 > [cjpais/Handy](https://github.com/cjpais/Handy), preserving its Git history and MIT license.
-> A Windows source build and startup smoke test have passed locally; live dictation and signed
-> installer packaging are still to be verified. See [windows-local-setup.md](windows-local-setup.md)
-> for this machine's build details.
+> Windows build/startup passed and an initial live Notepad test produced text, but failed
+> speed/Hinglish/acronym acceptance. This fork adds experimental offline Roman-Hinglish delivery,
+> model preload and latency diagnostics; see [voice-workspace-features.md](voice-workspace-features.md)
+> and [windows-local-setup.md](windows-local-setup.md). Updated live acceptance and signed
+> installer packaging are not yet verified.
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
 

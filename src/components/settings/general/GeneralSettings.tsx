@@ -12,10 +12,12 @@ import { useSettings } from "../../../hooks/useSettings";
 import { VolumeSlider } from "../VolumeSlider";
 import { MuteWhileRecording } from "../MuteWhileRecording";
 import { ModelSettingsCard } from "./ModelSettingsCard";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { audioFeedbackEnabled } = useSettings();
+  const { audioFeedbackEnabled, getSetting, updateSetting, isUpdating } =
+    useSettings();
   const isLinux = type() === "linux";
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
@@ -26,6 +28,28 @@ export const GeneralSettings: React.FC = () => {
         {!isLinux && <ShortcutInput shortcutId="cancel" grouped={true} />}
       </SettingsGroup>
       <ModelSettingsCard />
+      <SettingsGroup title={t("settings.voiceWorkspace.title")}>
+        <ToggleSwitch
+          checked={getSetting("roman_hinglish_enabled") ?? false}
+          onChange={(enabled) =>
+            updateSetting("roman_hinglish_enabled", enabled)
+          }
+          isUpdating={isUpdating("roman_hinglish_enabled")}
+          label={t("settings.voiceWorkspace.romanHinglish.label")}
+          description={t("settings.voiceWorkspace.romanHinglish.description")}
+          descriptionMode="inline"
+          grouped={true}
+        />
+        <ToggleSwitch
+          checked={getSetting("preload_model") ?? false}
+          onChange={(enabled) => updateSetting("preload_model", enabled)}
+          isUpdating={isUpdating("preload_model")}
+          label={t("settings.voiceWorkspace.preloadModel.label")}
+          description={t("settings.voiceWorkspace.preloadModel.description")}
+          descriptionMode="inline"
+          grouped={true}
+        />
+      </SettingsGroup>
       <SettingsGroup title={t("settings.sound.title")}>
         <MicrophoneSelector descriptionMode="tooltip" grouped={true} />
         <ChannelSelector descriptionMode="tooltip" grouped={true} />

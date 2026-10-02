@@ -60,4 +60,7 @@ pub struct CliArgs {
     /// Emit --transcribe-file results as JSON.
     #[arg(long)]
     pub json: bool,
+    /// Suppress transcript text in benchmark output (timings only).
+    #[arg(long)]
+    pub stats_only: bool,
 }
