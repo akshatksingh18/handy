@@ -59,10 +59,26 @@ The original CPU profile failed Akshat's interactive acceptance: text appeared i
 Hindi used Devanagari, a technical acronym was misheard, and release-to-text exceeded 10 seconds.
 Aggregate device/model measurements and current activation decisions belong in
 `../voice-workspace/performance.md` and `../voice-workspace/setup.md`.
-The updated Turbo live test failed latency/Hindi acceptance. The English-only candidate still
-requires a new live microphone/paste test. Nothing here claims instant
-dictation, maximum English accuracy, Hindi readiness, auto-learning, meeting integration,
+The updated Turbo live test failed latency/Hindi acceptance. Akshat accepts the selected
+Parakeet profile's live English speed, but has not tested technical words. This is qualitative
+user acceptance, not a measured new latency/p95 or a completed insertion/reliability suite.
+Nothing here claims guaranteed instant dictation, maximum English accuracy, Hindi readiness,
+auto-learning, meeting integration,
 cross-platform device verification or signed packaging.
+
+## Spoken correction boundary
+
+The active profile has AI cleanup off and Custom Words empty. Advanced Settings → Custom Words
+supports manual vocabulary; this Parakeet path applies fuzzy post-ASR matching, not acoustic
+prompting or automatic learning. Optional LLM post-processing exists, but its default prompt
+does not explicitly resolve spoken backtracking and it is not configured for this profile.
+
+There is no dedicated rule that turns "Let's meet at 7 pm. Sorry, let's meet at 6 pm." into one
+corrected sentence. The current pipeline finalizes ASR, handles output/history, then pastes once;
+streaming text does not continuously overwrite the external editor. The proposed first slice is
+same-recording correction before paste, with raw recovery, conservative matching and latency tests.
+Editing a previous insertion is a separate target-validated mode, not blind deletion or monitoring
+of unrelated typing. Requirements/design/fixtures belong in the sibling Voice Workspace documents.
 
 ## Maintenance
 

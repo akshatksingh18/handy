@@ -7,8 +7,9 @@
 > output failed; active Voice Workspace scope is now English only. This fork adds native
 > batch/streaming startup warm-up and latency diagnostics, with the old Roman converter off;
 > see [voice-workspace-features.md](voice-workspace-features.md)
-> and [windows-local-setup.md](windows-local-setup.md). English live acceptance and signed
-> installer packaging are not yet verified.
+> and [windows-local-setup.md](windows-local-setup.md). Akshat accepts the current Parakeet
+> English speed; technical-word accuracy, insertion/reliability coverage and signed packaging
+> remain open. Dedicated spoken self-correction is not yet implemented.
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
 

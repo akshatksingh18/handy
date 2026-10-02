@@ -10,7 +10,9 @@ WhimprFlow proof of concept; mobile clients are not part of the current implemen
 and this imported history is published in Akshat's private `akshatksingh18/handy` repository.
 Akshat's Turbo live test still took 3–4 seconds and Hindi output failed. Active product scope is
 now English only; the converter is off, while native streaming warm-up and diagnostics support
-the faster Parakeet test profile. English live acceptance and signed packaging remain unverified.
+the Parakeet profile. Akshat accepts its live English speed; technical-word accuracy, the broader
+insertion/reliability suite and signed packaging remain open. Dedicated spoken self-correction
+is proposed, not implemented or enabled; see the Voice Workspace framework and fixtures.
 
 ## Files
 

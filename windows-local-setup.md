@@ -46,7 +46,9 @@ Whisper Small CPU/NVIDIA/Intel inference and approved Turbo/NVIDIA inference wer
 model integrity and aggregate results are owned by `../voice-workspace/setup.md` and
 `../voice-workspace/performance.md`. Turbo's updated live test still took 3–4 seconds and Hindi
 output failed; active scope is now English only. Parakeet Unified EN Q8 is the faster candidate,
-with the old converter disabled. English live acceptance and signed packaging remain open.
+with the old converter disabled. Akshat accepts this profile's live English speed; no exact
+new latency or p95 is reported. Technical-word accuracy, the broader insertion/reliability suite,
+spoken self-correction and signed packaging remain open. No cleanup model is configured.
 The current English optimization's Tauri release build passed with embedded production assets;
 the isolated GUI stays alive after Parakeet/NVIDIA load and discarded-silence streaming priming.
 TypeScript/frontend build, local ESLint and native diagnostic/regression checks passed. Current
