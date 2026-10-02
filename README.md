@@ -10,8 +10,9 @@
 > and [windows-local-setup.md](windows-local-setup.md). Akshat accepts the current Parakeet
 > English streaming speed, but live E03 failed PostgreSQL spelling and punctuation. This fork adds
 > opt-in full-recording recognition and safer manual dictionary matching for a new quality test.
-> Natural list commas, live quality-profile acceptance, insertion/reliability coverage and signed
-> packaging remain open. Dedicated spoken self-correction is not yet implemented.
+> Akshat reports the deployed quality retest's technical words/punctuation worked perfectly,
+> cleanup off. Broader accuracy, quantitative latency, insertion/reliability and signed packaging
+> remain open. Dedicated spoken self-correction is not yet implemented.
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
 

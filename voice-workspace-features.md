@@ -72,8 +72,10 @@ The updated Turbo live test failed latency/Hindi acceptance. Akshat accepts the 
 Parakeet streaming profile's live English speed, but the subsequent E03 microphone test failed
 PostgreSQL spelling and punctuation. Same-recording offline Parakeet batch retained critical
 terms and a terminal period in 0.378–0.439 s; no natural list commas and one lexical error remained.
-Turbo got the fixture punctuation/words but took 3.220–3.358 s. The new quality profile still needs
-a live test. All 48 standalone diagnostic/text-filter tests pass, including dictionary prefix
+Turbo got the fixture punctuation/words but took 3.220–3.358 s. Akshat reports the deployed quality
+profile's live technical words/punctuation worked perfectly, cleanup off. That qualitative retest
+does not establish all fixtures, repetitions or exact/p95 latency. All 48 standalone
+diagnostic/text-filter tests pass, including dictionary prefix
 regressions; this is not the full application test suite. The full-recording update passes TypeScript,
 changed-interface ESLint/Prettier, frontend production build and offline Tauri Windows release build.
 The updated isolated app passes transcript-free headless inference; runtime libraries match and
@@ -88,7 +90,8 @@ cross-platform device verification or signed packaging.
 
 The active quality profile has AI cleanup off and three manual Custom Words. Advanced Settings → Custom Words
 supports manual vocabulary; this Parakeet path applies fuzzy post-ASR matching, not acoustic
-prompting or automatic learning. Natural list punctuation/contextual grammar remain unsolved.
+prompting or automatic learning. The live quality retest's punctuation passed by user report,
+but broader punctuation/contextual grammar are not guaranteed by the dictionary or that one result.
 Optional LLM post-processing exists, but its default prompt
 does not explicitly resolve spoken backtracking and it is not configured for this profile.
 
@@ -101,8 +104,12 @@ of unrelated typing. Requirements/design/fixtures belong in the sibling Voice Wo
 
 OpenWhispr's pinned prompt/cleanup failure fallback is a workflow reference for punctuation,
 technical spelling and explicit backtracking. No external prompt/code was copied, no cleanup
-model/server is configured, and a new local text-model/runtime comparison needs separate authority
-and latency/meaning validation. Do not enable cloud cleanup or hardcode a fixture-specific output.
+model/server is configured in Handy. Akshat approved a separate small local text-model/Windows
+runtime comparison from official GitHub/Hugging Face, not uploads or default activation.
+Latency/meaning validation is required. Do not enable cloud cleanup or hardcode fixture output.
+The separate Qwen3-0.6B Q8 experiment failed time-repair/clause-preservation checks, so no local
+processor was activated in Handy. Its runner/downloads/results remain in Voice Workspace, not
+this application's dependencies or a bundled model.
 
 ## Maintenance
 

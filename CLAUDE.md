@@ -12,7 +12,8 @@ Akshat's Turbo live test still took 3–4 seconds and Hindi output failed. Activ
 now English only; the converter is off, while native streaming warm-up and diagnostics support
 the Parakeet profile. Akshat accepts its earlier streaming speed, but live E03 failed PostgreSQL
 and punctuation. The opt-in full-recording/manual-vocabulary slice is implemented; deployment
-evidence belongs in the setup guides and live retest remains open. Broader insertion/reliability
+evidence belongs in the setup guides. Akshat reports its live technical-word/punctuation retest
+worked perfectly, cleanup off; broader accuracy, quantitative latency and insertion/reliability
 and signed packaging remain open. Dedicated spoken self-correction
 is proposed, not implemented or enabled; see the Voice Workspace framework and fixtures.
 

@@ -49,13 +49,14 @@ model integrity and aggregate results are owned by `../voice-workspace/setup.md`
 output failed; active scope is now English only. Parakeet Unified EN Q8 is the faster candidate,
 with the old converter disabled. Akshat accepts this profile's live English speed; no exact
 new latency or p95 is reported. Its later live E03 test failed PostgreSQL and punctuation.
-The new opt-in full-recording mode plus dictionary prefix fix needs live retesting; natural list
-commas are not solved. The broader insertion/reliability suite,
+Akshat reports the deployed full-recording/three-term retest's technical words/punctuation worked
+perfectly, cleanup off. Broader accuracy, quantitative latency and insertion/reliability,
 spoken self-correction and signed packaging remain open. No cleanup model is configured.
 The full-recording quality update's offline Tauri release build passed with embedded production
 assets; all 14 runtime DLL hashes match. The deployed app passes transcript-free headless batch
 inference on the saved synthetic E03 clip. The quality GUI remains alive for at least 60 seconds
-after NVIDIA load and batch priming; its physical microphone/paste retest remains open.
+after NVIDIA load and batch priming. The user-reported quality retest is a one-fixture qualitative
+pass, not the full microphone/paste/reliability suite.
 TypeScript/frontend build, local ESLint and native diagnostic/regression checks passed. Current
 executable/model hashes and timings remain owned by the linked Voice Workspace documents.
 Fork-specific implemented behavior and checks are indexed in voice-workspace-features.md.
