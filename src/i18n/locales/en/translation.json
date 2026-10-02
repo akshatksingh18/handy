@@ -166,7 +166,7 @@
       },
       "preloadModel": {
         "label": "Warm model on startup",
-        "description": "Load the selected downloaded model and prime Whisper with discarded synthetic silence before dictation. Does not open the microphone. Wait for loading to finish; uses extra memory. Set Model Unload to Never to keep it warm."
+        "description": "Load the selected downloaded model and prime its local batch or streaming path with discarded synthetic silence before dictation. Does not open the microphone. Wait for loading to finish; uses extra memory. Set Model Unload to Never to keep it warm."
       }
     },
     "modelSettings": {

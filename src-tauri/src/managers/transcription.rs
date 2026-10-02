@@ -707,26 +707,39 @@ impl TranscriptionManager {
             }
         };
 
-        // Opt-in warm-up primes the actual Whisper encoder/decoder, not just
+        // Opt-in warm-up primes the actual inference path, not just
         // the model file. Synthetic silence is discarded: no microphone,
         // output events, history, clipboard or LLM. Keep loading state until
         // this finishes so users do not confuse loaded weights with readiness.
         if get_settings(&self.app_handle).preload_model {
             if let LoadedEngine::TranscribeCpp(session) = &mut loaded_engine {
-                if session.model().arch() == "whisper" {
+                {
                     let warm_start = Instant::now();
+                    let caps = session.model().capabilities();
+                    let warm_language = caps.languages.iter().find(|lang| lang.as_str() == "en")
+                        .or_else(|| caps.languages.first()).cloned();
                     let warm_options = RunOptions {
-                        language: Some("en".into()),
-                        family: Some(RunExtension::Whisper(WhisperRunOptions {
+                        language: warm_language,
+                        family: (session.model().arch() == "whisper").then(|| RunExtension::Whisper(WhisperRunOptions {
                             temperature: Some(0.0),
                             temperature_inc: Some(0.0),
                             ..Default::default()
                         })),
                         ..Default::default()
                     };
-                    match session.run(&vec![0.0; 16_000], &warm_options) {
+                    let silence = vec![0.0; 16_000];
+                    let warm_result = if caps.supports_streaming {
+                        session.stream(&warm_options, &StreamOptions::default()).and_then(|mut stream| {
+                            stream.feed(&silence)?;
+                            stream.finalize()?;
+                            Ok(())
+                        })
+                    } else {
+                        session.run(&silence, &warm_options).map(|_| ())
+                    };
+                    match warm_result {
                         Ok(_) => info!("dictation_warmup_ms={}", warm_start.elapsed().as_millis()),
-                        Err(err) => warn!("Whisper startup warm-up failed; first dictation may be slower: {}", err),
+                        Err(err) => warn!("ASR startup warm-up failed; first dictation may be slower: {}", err),
                     }
                 }
             }

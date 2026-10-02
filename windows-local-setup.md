@@ -44,7 +44,13 @@ Build/startup on this Windows machine are verified. Akshat's initial portable No
 capture/transcribe/insert speech, but failed latency, Roman-Hinglish script and acronym acceptance.
 Whisper Small CPU/NVIDIA/Intel inference and approved Turbo/NVIDIA inference were measured locally;
 model integrity and aggregate results are owned by `../voice-workspace/setup.md` and
-`../voice-workspace/performance.md`. Updated live acceptance and signed packaging remain open.
+`../voice-workspace/performance.md`. Turbo's updated live test still took 3–4 seconds and Hindi
+output failed; active scope is now English only. Parakeet Unified EN Q8 is the faster candidate,
+with the old converter disabled. English live acceptance and signed packaging remain open.
+The current English optimization's Tauri release build passed with embedded production assets;
+the isolated GUI stays alive after Parakeet/NVIDIA load and discarded-silence streaming priming.
+TypeScript/frontend build, local ESLint and native diagnostic/regression checks passed. Current
+executable/model hashes and timings remain owned by the linked Voice Workspace documents.
 Fork-specific implemented behavior and checks are indexed in voice-workspace-features.md.
 The upstream [BUILD.md](BUILD.md) remains the general cross-platform guide.
 
@@ -52,3 +58,26 @@ Use the documented Tauri build rather than bare `cargo build --release` for the 
 Tauri enables the embedded production asset protocol; a bare Cargo release can still have
 the development URL selected. The formatter/Clippy components were absent from this minimal
 Rust toolchain; do not claim those checks passed without installing/running them.
+
+## Local ASR diagnostic
+
+`src-tauri/examples/asr_latency.rs` benchmarks batch or real-time-paced native streaming without
+microphone, VAD, app text filters, history or paste. It emits aggregate JSON only, never recognized
+text. The tested build on this machine linked the existing release `transcribe_cpp`, `hound` and
+`serde_json` rlibs with `rustc`, plus the existing native `transcribe.lib`; no dependency download
+or full GUI rebuild was required for that diagnostic. Its scoring regression test passes.
+
+For a conventional rebuild after configuring the same native environment above:
+
+```powershell
+Set-Location 'D:\AI Important Files\personal-project\handy\src-tauri'
+cargo build --release --offline --example asr_latency
+```
+
+This conventional example command has not separately been exercised here; it can compile the
+project library as well and take longer. It is not the final GUI build command. Copy the diagnostic
+exe from `target/release/examples/` (or the tested direct-rustc output `target/release/asr_latency.exe`)
+beside the matching isolated runtime DLLs, named `asr_latency.exe`, then use Voice Workspace's
+`scripts/benchmark-asr.ps1`. Do not mix native/library versions. Use explicit device name and inspect
+returned `bound_device`: process-local indices/backend labels can change. Gold fixtures and WAVs
+stay ignored/local. A synthetic TTS result does not certify user-accent accuracy or actual insertion.

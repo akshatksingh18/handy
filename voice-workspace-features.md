@@ -5,9 +5,15 @@ application is still planned; no restricted Granola/Natively code is used here.
 
 ## Implemented behavior
 
+The active Voice Workspace profile is **English only**, with Parakeet Unified EN Q8/NVIDIA as
+the test candidate. English is selected explicitly; Roman Hinglish, translation and AI cleanup
+are off. The user's updated Turbo live test still took 3–4 seconds and Hindi was delivered in
+English, so the earlier Hindi/Hinglish requirement is superseded. The converter below remains
+dormant/recoverable; its synthetic script tests were not a successful acoustic/meaning test.
+
 - General Settings → Voice Workspace exposes **Hindi in Roman Hinglish** and **Warm model on
   startup**. Both default off for existing upstream users; the isolated Voice Workspace profile
-  explicitly enables them. No new inference dependency or server is required.
+  enables warm-up only. No new inference dependency or server is required.
 - Hindi script is converted locally before optional cleanup and validated/converted again after
   cleanup. Already-English text is copied verbatim. This is not English translation or an ASR
   correction model. Common chat spellings and exact technical loanwords have a small explicit
@@ -15,9 +21,11 @@ application is still planned; no restricted Granola/Natively code is used here.
 - Translation to English cannot be enabled with Roman Hinglish. Unsupported Hindi-script symbols
   produce an error instead of a silent Devanagari paste. The original recording/raw recognition
   remains local for retry/recovery under the existing retention policy.
-- History displays/copies delivery text by default. Old/error Hindi entries require retry; an
+- History displays/copies delivery text by default. When Roman mode is explicitly enabled,
+  old/error Hindi entries require retry; an
   explicit **Show raw recognition (recovery only)** reveals the preserved ASR instead.
-- Startup preload loads the selected downloaded speech model asynchronously and primes Whisper
+- Startup preload loads the selected downloaded speech model asynchronously and primes native
+  batch or streaming inference according to its runtime capabilities
   with discarded synthetic silence before reporting loading complete. It does not open
   the microphone, deliver/store the synthetic result or fetch models. Model Unload → Never avoids repeated idle model loads; it
   consumes RAM/VRAM and is appropriate only for this measured test profile. Startup itself takes
@@ -27,6 +35,10 @@ application is still planned; no restricted Granola/Natively code is used here.
 - Headless `--stats-only --json` omits transcript text; `--list-devices --json` exposes stable GPU
   selectors. File transcription also honors Roman Hinglish. No mic, paste, history entry or LLM
   call is made by that headless benchmark path.
+- `src-tauri/examples/asr_latency.rs` is a standalone, content-free native diagnostic: explicit
+  device name/index, batch or real-time-paced streaming, optional local gold-text scoring. It uses
+  cached native dependencies, prints actual bound device and aggregate timings/errors, never raw
+  recognized text. It does not benchmark the complete GUI, mic, VAD, filters, clipboard or paste.
 
 ## Verification and limitations
 
@@ -36,6 +48,10 @@ Six history delivery regression checks, TypeScript, frontend build and changed-f
 The updated Tauri Windows release build, real NVIDIA/Turbo inference and script delivery checks
 pass, as do timing-only output suppression and GUI startup/priming/settings persistence.
 See setup/performance for the deployed executable hash and individual timings.
+The English optimization also passes the TypeScript/frontend/native Tauri release build, local
+ESLint, standalone scoring regression and retained eight converter regressions. The new runtime
+loads/primes streaming-capable Parakeet on the persisted NVIDIA selector and passes timing-only
+headless inference. First-run and vocabulary accuracy limits remain recorded in performance.md.
 The converter microbenchmark averages about 5 microseconds on this laptop for the short synthetic
 fixture; this is not a recognition or insertion measurement.
 
@@ -43,14 +59,16 @@ The original CPU profile failed Akshat's interactive acceptance: text appeared i
 Hindi used Devanagari, a technical acronym was misheard, and release-to-text exceeded 10 seconds.
 Aggregate device/model measurements and current activation decisions belong in
 `../voice-workspace/performance.md` and `../voice-workspace/setup.md`.
-The updated runtime still requires a new live microphone/paste test. Nothing here claims instant
-dictation, complete Hindi spelling/recognition accuracy, auto-learning, meeting integration,
+The updated Turbo live test failed latency/Hindi acceptance. The English-only candidate still
+requires a new live microphone/paste test. Nothing here claims instant
+dictation, maximum English accuracy, Hindi readiness, auto-learning, meeting integration,
 cross-platform device verification or signed packaging.
 
 ## Maintenance
 
 Converter source: `src-tauri/src/audio_toolkit/hinglish.rs`. Keep fixtures synthetic; add spelling
 preferences only as explicit exact entries, not fuzzy substitutions that could change meaning.
-The delivery stage is independent of cleanup. Do not silently replace a failed conversion with
+The dormant delivery stage is independent of cleanup. Do not re-enable it for English-only work.
+If later explicitly enabled, do not silently replace a failed conversion with
 raw script, translate Hindi, infer missing spoken words, or enable a cloud processor.
 Model downloads and model redistribution are separate authorization/license decisions.

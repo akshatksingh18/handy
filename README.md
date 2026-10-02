@@ -3,9 +3,11 @@
 > This private repository is Akshat's independently maintained copy of
 > [cjpais/Handy](https://github.com/cjpais/Handy), preserving its Git history and MIT license.
 > Windows build/startup passed and an initial live Notepad test produced text, but failed
-> speed/Hinglish/acronym acceptance. This fork adds experimental offline Roman-Hinglish delivery,
-> model preload and latency diagnostics; see [voice-workspace-features.md](voice-workspace-features.md)
-> and [windows-local-setup.md](windows-local-setup.md). Updated live acceptance and signed
+> speed/Hinglish/acronym acceptance. Turbo's updated live test still took 3–4 seconds and Hindi
+> output failed; active Voice Workspace scope is now English only. This fork adds native
+> batch/streaming startup warm-up and latency diagnostics, with the old Roman converter off;
+> see [voice-workspace-features.md](voice-workspace-features.md)
+> and [windows-local-setup.md](windows-local-setup.md). English live acceptance and signed
 > installer packaging are not yet verified.
 
 [![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/invite/WVBeWsNXK4)
