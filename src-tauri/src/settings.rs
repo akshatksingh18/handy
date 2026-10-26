@@ -428,6 +428,10 @@ pub struct AppSettings {
     /// Opt-in full-recording recognition instead of streaming final text.
     #[serde(default)]
     pub prefer_batch_transcription: bool,
+    /// Full-recording mode only: recognize each finished phrase at a pause
+    /// while the key is still held, so release only decodes the last phrase.
+    #[serde(default)]
+    pub early_chunk_recognition: bool,
     #[serde(default = "default_overlay_position")]
     pub overlay_position: OverlayPosition,
     #[serde(default = "default_debug_mode")]
@@ -941,6 +945,7 @@ pub fn get_default_settings() -> AppSettings {
         roman_hinglish_enabled: false,
         preload_model: false,
         prefer_batch_transcription: false,
+        early_chunk_recognition: false,
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),

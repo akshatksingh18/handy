@@ -7,7 +7,9 @@ use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{
+    get_settings, AppSettings, ModelUnloadTimeout, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID,
+};
 use crate::shortcut;
 use crate::tray::{set_tray_state, TrayIconState};
 use crate::utils::{
@@ -547,6 +549,13 @@ impl ShortcutAction for TranscribeAction {
         };
         if model_supports_streaming {
             tm.start_stream();
+        } else if settings.prefer_batch_transcription
+            && settings.early_chunk_recognition
+            && settings.vad_enabled
+            && settings.model_unload_timeout != ModelUnloadTimeout::Immediately
+        {
+            // Needs VAD to see pauses, and a model that stays loaded between phrases.
+            tm.start_early_chunks();
         }
         let plan_elapsed = plan_started.elapsed();
 

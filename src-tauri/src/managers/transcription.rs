@@ -111,6 +111,9 @@ struct FinalizedStreamText {
     output_language: OutputLanguageEvidence,
     /// The streaming model's supported languages, for text-based detection.
     supported_languages: Vec<String>,
+    /// True when the text already went through `transcribe()` post-processing
+    /// (early-chunk worker), so finalize must not apply it a second time.
+    already_processed: bool,
 }
 
 /// Routes real-time audio frames to the active streaming worker. Shared between
@@ -180,6 +183,17 @@ impl StreamRouter {
 /// Snapdragon laptop the first dictation after ~85 idle minutes ran about 6x
 /// slower than warm ones even though the startup warm-up had succeeded.
 const REWARM_AFTER_IDLE_MS: u64 = 15_000;
+
+/// Early-chunk recognition: VAD drops pauses, so no frame arriving for this
+/// long (on top of the 450 ms VAD hangover) means the user paused.
+const EARLY_CHUNK_PAUSE: Duration = Duration::from_millis(200);
+/// How often the early-chunk worker checks for a pause when no frames arrive.
+const EARLY_CHUNK_POLL: Duration = Duration::from_millis(50);
+/// Do not recognize a phrase early until it holds at least this much audio, so
+/// short hesitations do not split sentences into fragments.
+const EARLY_CHUNK_MIN_SAMPLES: usize = 16_000 * 3;
+/// Pad very short final tails the way `stop_recording` pads short recordings.
+const EARLY_TAIL_PAD_SAMPLES: usize = 16_000 * 5 / 4;
 
 /// Runs one second of discarded silence through the session so the next real
 /// run starts warm. No microphone, output events, history or clipboard.
@@ -926,6 +940,122 @@ impl TranscriptionManager {
     /// model can't stream, the worker idles until finalize/cancel and reports
     /// `None` so the caller falls back to batch transcription. Frames sent
     /// before the stream begins queue on the channel and are not lost.
+    /// Full-recording mode with early chunks: recognize each finished phrase
+    /// at a pause while the key is still held. Uses the stream router, so the
+    /// existing finalize/cancel calls drive it; finalize then only decodes the
+    /// audio after the last pause and returns the joined, post-processed text.
+    /// Any failure replies `None`, and the caller batch-transcribes everything.
+    pub fn start_early_chunks(&self) {
+        if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
+            warn!("start_early_chunks called while a stream worker is already active");
+            return;
+        }
+        let worker_id = self.next_stream_worker_id.fetch_add(1, Ordering::Relaxed);
+        if self
+            .active_stream_worker
+            .compare_exchange(0, worker_id, Ordering::AcqRel, Ordering::Acquire)
+            .is_err()
+        {
+            warn!("start_early_chunks lost a race with another stream worker");
+            return;
+        }
+        let rx = self.router.open();
+        let manager = self.clone();
+        thread::spawn(move || manager.run_early_chunk_worker(rx, worker_id));
+    }
+
+    fn run_early_chunk_worker(&self, rx: mpsc::Receiver<StreamCmd>, worker_id: u64) {
+        let _worker = StreamWorkerGuard {
+            worker_id,
+            active_stream_worker: Arc::clone(&self.active_stream_worker),
+            active_engine_lease: Arc::clone(&self.active_engine_lease),
+            stream_active: Arc::clone(&self.stream_active),
+        };
+
+        // Frames arrive exactly as the recorder appends them to the recording,
+        // so `audio` mirrors the samples the release path would transcribe.
+        let mut audio: Vec<f32> = Vec::new();
+        let mut decoded = 0usize;
+        let mut texts: Vec<String> = Vec::new();
+        let mut early_ms = 0u128;
+        let mut failed = false;
+        let mut last_feed = Instant::now();
+
+        loop {
+            match rx.recv_timeout(EARLY_CHUNK_POLL) {
+                Ok(StreamCmd::Feed(frame)) => {
+                    audio.extend_from_slice(&frame);
+                    last_feed = Instant::now();
+                }
+                Ok(StreamCmd::Finalize(reply)) => {
+                    let reply_text = if failed {
+                        None
+                    } else {
+                        let tail_start = Instant::now();
+                        let mut tail = audio[decoded..].to_vec();
+                        let tail_samples = tail.len();
+                        let tail_result = if tail.is_empty() {
+                            Ok(String::new())
+                        } else {
+                            if tail.len() < EARLY_TAIL_PAD_SAMPLES {
+                                tail.resize(EARLY_TAIL_PAD_SAMPLES, 0.0);
+                            }
+                            self.transcribe(tail)
+                        };
+                        match tail_result {
+                            Ok(tail_text) => {
+                                let early_count = texts.len();
+                                texts.push(tail_text);
+                                info!(
+                                    "early_chunks count={} early_audio_ms={} early_decode_ms={} tail_audio_ms={} tail_decode_ms={}",
+                                    early_count,
+                                    decoded / 16,
+                                    early_ms,
+                                    tail_samples / 16,
+                                    tail_start.elapsed().as_millis()
+                                );
+                                Some(FinalizedStreamText {
+                                    text: join_chunk_texts(&texts),
+                                    output_language: OutputLanguageEvidence::Unknown,
+                                    supported_languages: Vec::new(),
+                                    already_processed: true,
+                                })
+                            }
+                            Err(err) => {
+                                warn!("Early-chunk tail failed; using full recording: {}", err);
+                                None
+                            }
+                        }
+                    };
+                    let _ = reply.send(reply_text);
+                    return;
+                }
+                Ok(StreamCmd::Cancel) | Err(mpsc::RecvTimeoutError::Disconnected) => return,
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+            }
+
+            if !failed
+                && audio.len() - decoded >= EARLY_CHUNK_MIN_SAMPLES
+                && last_feed.elapsed() >= EARLY_CHUNK_PAUSE
+            {
+                let chunk_start = Instant::now();
+                match self.transcribe(audio[decoded..].to_vec()) {
+                    Ok(text) => {
+                        texts.push(text);
+                        decoded = audio.len();
+                        early_ms += chunk_start.elapsed().as_millis();
+                    }
+                    Err(err) => {
+                        // Keep draining frames; release falls back to a full
+                        // batch transcription of the whole recording.
+                        warn!("Early-chunk recognition failed; using full recording: {}", err);
+                        failed = true;
+                    }
+                }
+            }
+        }
+    }
+
     pub fn start_stream(&self) {
         if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
             warn!("start_stream called while a stream worker is already active");
@@ -1156,6 +1286,7 @@ impl TranscriptionManager {
                                     text: stream.text().full,
                                     output_language,
                                     supported_languages: languages.clone(),
+                                    already_processed: false,
                                 })
                             }
                             Err(e) => {
@@ -1247,6 +1378,11 @@ impl TranscriptionManager {
                 ));
             }
         };
+
+        if finalized.already_processed {
+            self.maybe_unload_immediately("early-chunk transcription");
+            return Ok(Some(finalized.text));
+        }
 
         let settings = get_settings(&self.app_handle);
         // Streaming models do not receive a decode prompt, so custom words
@@ -1978,6 +2114,16 @@ fn cpp_translation_task(
 /// finalizes or cancels. Used when streaming can't actually run (model not
 /// loaded / not streaming-capable) so the finalize handshake still completes
 /// and the caller falls back to batch transcription.
+/// Joins per-phrase results with single spaces, skipping empty ones.
+fn join_chunk_texts(texts: &[String]) -> String {
+    texts
+        .iter()
+        .map(|text| text.trim())
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 fn drain_until_finalize(rx: mpsc::Receiver<StreamCmd>) {
     while let Ok(cmd) = rx.recv() {
         match cmd {
