@@ -513,6 +513,9 @@ impl ShortcutAction for TranscribeAction {
             }
         }
 
+        // After an idle stretch, warm the model while the user speaks.
+        tm.rewarm_if_idle();
+
         let binding_id = binding_id.to_string();
         let tray_started = Instant::now();
         set_tray_state(app, TrayIconState::Recording);

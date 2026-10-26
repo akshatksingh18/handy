@@ -176,6 +176,47 @@ impl StreamRouter {
     }
 }
 
+/// Re-warm the model when dictation starts after this long without use. On the
+/// Snapdragon laptop the first dictation after ~85 idle minutes ran about 6x
+/// slower than warm ones even though the startup warm-up had succeeded.
+const REWARM_AFTER_IDLE_MS: u64 = 15_000;
+
+/// Runs one second of discarded silence through the session so the next real
+/// run starts warm. No microphone, output events, history or clipboard.
+fn warm_transcribe_cpp_session(session: &mut Session, use_stream: bool) -> Result<(), String> {
+    let caps = session.model().capabilities();
+    let warm_language = caps
+        .languages
+        .iter()
+        .find(|lang| lang.as_str() == "en")
+        .or_else(|| caps.languages.first())
+        .cloned();
+    let warm_options = RunOptions {
+        language: warm_language,
+        family: (session.model().arch() == "whisper").then(|| {
+            RunExtension::Whisper(WhisperRunOptions {
+                temperature: Some(0.0),
+                temperature_inc: Some(0.0),
+                ..Default::default()
+            })
+        }),
+        ..Default::default()
+    };
+    let silence = vec![0.0; 16_000];
+    let result = if use_stream {
+        session
+            .stream(&warm_options, &StreamOptions::default())
+            .and_then(|mut stream| {
+                stream.feed(&silence)?;
+                stream.finalize()?;
+                Ok(())
+            })
+    } else {
+        session.run(&silence, &warm_options).map(|_| ())
+    };
+    result.map_err(|err| err.to_string())
+}
+
 enum LoadedEngine {
     /// Whisper-family models (whisper, breeze-asr, custom .bin/.gguf) via
     /// transcribe-cpp. Holds the live `Session`, which keeps its `Model` alive
@@ -277,6 +318,8 @@ pub struct TranscriptionManager {
     /// `is_model_loaded()` consults this so the model still reports "loaded"
     /// while the worker holds it.
     active_engine_lease: Arc<AtomicU64>,
+    /// True while an idle re-warm is running, so presses never stack them.
+    rewarm_running: Arc<AtomicBool>,
 }
 
 impl TranscriptionManager {
@@ -297,6 +340,7 @@ impl TranscriptionManager {
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             active_engine_lease: Arc::new(AtomicU64::new(0)),
+            rewarm_running: Arc::new(AtomicBool::new(false)),
         };
 
         // Start the idle watcher
@@ -453,6 +497,59 @@ impl TranscriptionManager {
     /// Reset the idle timer to now.
     fn touch_activity(&self) {
         self.last_activity.store(Self::now_ms(), Ordering::Relaxed);
+    }
+
+    /// Called when a dictation starts. After an idle stretch, warms the loaded
+    /// model in the background while the user speaks, so the release does not
+    /// pay a cold first run. Batch path only: streaming takes the engine at
+    /// recording start, so there is nothing to warm separately.
+    ///
+    /// Holds the engine lock rather than taking the engine out: a release that
+    /// arrives during the warm-up waits for it instead of finding no engine.
+    /// `try_lock` means it never waits behind a load or transcription.
+    pub fn rewarm_if_idle(&self) {
+        let settings = get_settings(&self.app_handle);
+        if !settings.preload_model {
+            return;
+        }
+        let idle_ms = Self::now_ms().saturating_sub(self.last_activity.load(Ordering::Relaxed));
+        if idle_ms < REWARM_AFTER_IDLE_MS {
+            return;
+        }
+        if self.rewarm_running.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let manager = self.clone();
+        let prefer_batch = settings.prefer_batch_transcription;
+        thread::spawn(move || {
+            if let Ok(mut guard) = manager.engine.try_lock() {
+                if let Some(LoadedEngine::TranscribeCpp(session)) = guard.as_mut() {
+                    if prefer_batch || !session.model().capabilities().supports_streaming {
+                        let warm_start = Instant::now();
+                        match catch_unwind(AssertUnwindSafe(|| {
+                            warm_transcribe_cpp_session(session, false)
+                        })) {
+                            Ok(Ok(())) => info!(
+                                "dictation_rewarm_ms={} idle_s={}",
+                                warm_start.elapsed().as_millis(),
+                                idle_ms / 1000
+                            ),
+                            Ok(Err(err)) => warn!("ASR idle re-warm failed: {}", err),
+                            Err(payload) => {
+                                // Same policy as a panicking transcription: drop
+                                // the engine so the next use reloads it.
+                                error!(
+                                    "ASR idle re-warm panicked; unloading engine: {}",
+                                    panic_payload_message(payload.as_ref())
+                                );
+                                *guard = None;
+                            }
+                        }
+                    }
+                }
+            }
+            manager.rewarm_running.store(false, Ordering::Release);
+        });
     }
 
     /// Unloads the model immediately if the setting is enabled and the model is loaded
@@ -715,29 +812,9 @@ impl TranscriptionManager {
             if let LoadedEngine::TranscribeCpp(session) = &mut loaded_engine {
                 {
                     let warm_start = Instant::now();
-                    let caps = session.model().capabilities();
-                    let warm_language = caps.languages.iter().find(|lang| lang.as_str() == "en")
-                        .or_else(|| caps.languages.first()).cloned();
-                    let warm_options = RunOptions {
-                        language: warm_language,
-                        family: (session.model().arch() == "whisper").then(|| RunExtension::Whisper(WhisperRunOptions {
-                            temperature: Some(0.0),
-                            temperature_inc: Some(0.0),
-                            ..Default::default()
-                        })),
-                        ..Default::default()
-                    };
-                    let silence = vec![0.0; 16_000];
-                    let warm_result = if caps.supports_streaming && !get_settings(&self.app_handle).prefer_batch_transcription {
-                        session.stream(&warm_options, &StreamOptions::default()).and_then(|mut stream| {
-                            stream.feed(&silence)?;
-                            stream.finalize()?;
-                            Ok(())
-                        })
-                    } else {
-                        session.run(&silence, &warm_options).map(|_| ())
-                    };
-                    match warm_result {
+                    let use_stream = session.model().capabilities().supports_streaming
+                        && !get_settings(&self.app_handle).prefer_batch_transcription;
+                    match warm_transcribe_cpp_session(session, use_stream) {
                         Ok(_) => info!("dictation_warmup_ms={}", warm_start.elapsed().as_millis()),
                         Err(err) => warn!("ASR startup warm-up failed; first dictation may be slower: {}", err),
                     }
