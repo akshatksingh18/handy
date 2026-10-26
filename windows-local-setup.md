@@ -67,6 +67,22 @@ Tauri enables the embedded production asset protocol; a bare Cargo release can s
 the development URL selected. The formatter/Clippy components were absent from this minimal
 Rust toolchain; do not claim those checks passed without installing/running them.
 
+## Windows ARM64 build (GitHub Actions)
+
+Akshat's second laptop is a Snapdragon X running Windows 11 ARM64 with no Rust, Bun or Visual
+Studio toolchain, so its `handy.exe` is built in the cloud, not here.
+`.github/workflows/windows-arm64-build.yml` is a manual (`workflow_dispatch`) job on the
+`windows-11-arm` runner with a read-only token, no secrets, no signing and no release upload. It
+pins Bun 1.4.2, Rust 1.98.0 and SHA-pinned actions, builds the static CPU-only
+`aarch64-pc-windows-msvc` target with `tauri build --no-bundle`, checks that `--list-devices` shows a
+CPU and no GPU, and uploads `handy.exe`, the staged ARM64 VC++ runtime DLLs and `SHA256SUMS.txt` as a
+7-day artifact. The ARM64 build has no GPU backend and no sibling `ggml*`/`transcribe` DLLs.
+
+Status: written and parsed as YAML only. It has not run, so runner availability for this private
+repository, build time, billed minutes and the speed of Parakeet on the Snapdragon CPU are all
+unverified. A push to `main` also triggers `main-build.yml` (macOS, Linux and Windows builds); put
+`[skip ci]` in the commit message when pushing only this workflow or documentation.
+
 ## Local ASR diagnostic
 
 `src-tauri/examples/asr_latency.rs` benchmarks batch or real-time-paced native streaming without

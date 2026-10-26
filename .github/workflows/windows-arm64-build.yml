@@ -1,0 +1,128 @@
+name: "Windows ARM64 build"
+
+# Manual, unsigned build of the CPU-only Windows ARM64 handy.exe for the Voice Workspace test
+# runtime. No secrets, no signing, no release upload, read-only token. It reuses the same ARM64
+# compiler settings as build.yml (clang-cl + Ninja, static CPU backend) but skips the installers.
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-arm64-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-11-arm
+    timeout-minutes: 90
+    env:
+      TARGET: aarch64-pc-windows-msvc
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch
+        with:
+          toolchain: "1.98.0"
+          targets: ${{ env.TARGET }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: windows-11-arm-${{ env.TARGET }}-no-bundle-v1
+          cache-bin: false
+
+      # ggml's ARM CPU backend refuses MSVC, so build with clang-cl through Ninja. These values and
+      # the two TRANSCRIBE_CMAKE_ARGS overrides mirror the "Windows ARM64" step in build.yml.
+      - name: Configure clang-cl for ARM64
+        shell: pwsh
+        run: |
+          $vars = @(
+            "CMAKE_GENERATOR=Ninja",
+            "CC=clang-cl",
+            "CXX=clang-cl",
+            "CMAKE_C_COMPILER=clang-cl",
+            "CMAKE_CXX_COMPILER=clang-cl",
+            "CMAKE_C_COMPILER_TARGET=$env:TARGET",
+            "CMAKE_CXX_COMPILER_TARGET=$env:TARGET",
+            "CL=/EHsc",
+            "RC=llvm-rc",
+            "TRANSCRIBE_CMAKE_ARGS=-DGGML_NATIVE=OFF -DGGML_OPENMP=OFF"
+          )
+          $vars | ForEach-Object { Add-Content -Path $env:GITHUB_ENV -Value $_ }
+
+      # build.rs stages these into src-tauri/transcribe-libs so the exe runs without a system redist.
+      - name: Locate ARM64 VC++ runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsRoot = & $vswhere -latest -products * -property installationPath
+          if (-not $vsRoot) { throw "vswhere found no Visual Studio installation" }
+          $version = (Get-Content (Join-Path $vsRoot "VC\Auxiliary\Build\Microsoft.VCRedistVersion.default.txt")).Trim()
+          $archDir = Join-Path $vsRoot "VC\Redist\MSVC\$version\arm64"
+          $crt = Get-ChildItem $archDir -Directory -Filter "Microsoft.VC*.CRT" | Sort-Object Name | Select-Object -Last 1
+          if (-not $crt -or -not (Test-Path (Join-Path $crt.FullName "msvcp140.dll"))) {
+            throw "ARM64 VC++ CRT redist not found under $archDir"
+          }
+          Add-Content -Path $env:GITHUB_ENV -Value "HANDY_VC_REDIST_DIRS=$($crt.FullName)"
+
+      - name: Tool versions
+        shell: pwsh
+        run: |
+          rustc -Vv
+          bun --version
+          clang-cl --version
+          ninja --version
+
+      - name: Install frontend dependencies
+        run: bun install --cpu=arm64 --frozen-lockfile
+
+      # --no-bundle compiles the release exe with the embedded production frontend and skips the
+      # NSIS/MSI installers, so no signing command or updater key is involved.
+      - name: Build handy.exe
+        run: bun x tauri build --target ${{ env.TARGET }} --no-bundle --ci
+
+      - name: Stage and check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = "src-tauri/target/$env:TARGET/release/handy.exe"
+          if (-not (Test-Path $exe)) { throw "$exe was not produced" }
+          $dlls = Get-ChildItem "src-tauri/transcribe-libs" -Filter "*.dll" -ErrorAction SilentlyContinue
+          foreach ($name in "msvcp140.dll", "vcruntime140.dll") {
+            if (-not ($dlls | Where-Object { $_.Name -ieq $name })) { throw "Staged runtime is missing $name" }
+          }
+          New-Item -ItemType Directory -Path stage | Out-Null
+          Copy-Item $exe stage/
+          Copy-Item $dlls.FullName stage/
+
+          # Same device check as the installer audit in build.yml: CPU only, no GPU backend.
+          $devices = (& "stage/handy.exe" --list-devices | Out-String)
+          $devices | Write-Host
+          if ($LASTEXITCODE -ne 0) { throw "handy.exe --list-devices failed" }
+          if ($devices -match "kind=(vulkan|cuda|metal|gpu)") { throw "ARM64 build unexpectedly exposed a GPU device" }
+          if ($devices -notmatch "kind=cpu") { throw "ARM64 build did not expose its CPU device" }
+
+          Get-ChildItem stage -File | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } |
+            Tee-Object -FilePath stage/SHA256SUMS.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: handy-windows-arm64-${{ github.sha }}
+          path: stage/*
+          if-no-files-found: error
+          retention-days: 7
