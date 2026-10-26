@@ -18,8 +18,18 @@ Local pre-import history, worktree edits, and the imported source tip are retain
 
 Targeted local checks pass: the full-recording policy across eight model/setting combinations,
 eight converter regressions, six history-delivery checks and parsing of the four edited TypeScript
-interfaces. Whole-project/cloud compilation remains pending. No installed executable, profile, model
-or user history is replaced. Live microphone/paste acceptance must be repeated before deploying this candidate.
+interfaces. Full frontend build, type-checking and quality checks pass at `9ddfa264`
+([run 40418896227](https://github.com/akshatksingh18/handy/actions/runs/40418896227)). The Windows ARM64
+release build and CPU-device probe pass at `e5e04507`
+([run 40417269897](https://github.com/akshatksingh18/handy/actions/runs/40417269897)); no artifact is installed.
+Subsequent application changes are locale fallbacks and formatting; the diagnostic example also
+propagates the new fallible capability lookup. Full Rust tests at `9ddfa264` pass: 316 passed,
+18 intentionally ignored, no failures
+([run 40418893755](https://github.com/akshatksingh18/handy/actions/runs/40418893755)). The three native application
+files changed after the Windows build are formatter-equivalent at `e5e04507` and `9ddfa264`;
+the standalone diagnostic is compiled by the successful Rust suite. No installed executable, profile, model
+or user history is replaced. The accepted idle re-warm on the separate `arm64-rewarm` branch must be ported to the supervised
+worker before adopting this source, followed by live microphone/paste acceptance.
 Use the current BUILD.md for native prerequisites; the recipe below describes the older x64 baseline.
 
 ## Previous x64 rebuild baseline

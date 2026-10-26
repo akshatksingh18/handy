@@ -6,23 +6,20 @@ Akshat's independently maintained copy of the MIT-licensed Handy desktop dictati
 Handy is the production-quality Windows, macOS, and Linux foundation replacing the earlier
 WhimprFlow proof of concept; mobile clients are not part of the current implementation.
 
-**Status:** Active desktop foundation — the deployed Windows baseline is verified; the final-upstream
-source candidate is undergoing cloud checks on `sync/final-upstream-20261026`. The independent
-repository is public at `akshatksingh18/handy`.
-Akshat's Turbo live test still took 3–4 seconds and Hindi output failed. Active product scope is
-now English only; the converter is off, while native streaming warm-up and diagnostics support
-the Parakeet profile. Akshat accepts its earlier streaming speed, but live E03 failed PostgreSQL
-and punctuation. The opt-in full-recording/manual-vocabulary slice is implemented; deployment
-evidence belongs in the setup guides. Akshat reports its live technical-word/punctuation retest
-worked perfectly, cleanup off; broader accuracy, quantitative latency and insertion/reliability
-and signed packaging remain open. An idle re-warm on dictation start is built on branch
-`arm64-rewarm` (from GitHub `main`) and deployed on the ARM64 laptop for retest; it is not yet on
-local `main`. Dedicated spoken self-correction
-is proposed, not implemented or enabled; see the Voice Workspace framework and fixtures.
+**Status:** Active desktop foundation — the final upstream source passes automated validation;
+adoption waits for the accepted idle re-warm port and live microphone/paste acceptance.
 
-The imported source is a verification candidate. Earlier live/build acceptance refers to the
-previous deployed binary, which this update does not replace. `windows-local-setup.md` owns
-the current source checks and remaining release/device gates.
+Local `main` includes upstream `73c09585` and the retained custom dictation profile. The reviewed
+candidate is published on `sync/final-upstream-20261026`; GitHub `main` is unchanged. Quality and
+full Rust checks pass at `9ddfa264`; the Windows ARM64 build uses formatter-equivalent native app
+source. `windows-local-setup.md` owns the exact revisions, run links and verification limits.
+
+The deployed ARM64 runtime stays on the separate `arm64-rewarm` branch, whose live retest removed
+the slow first dictation after idle. That accepted behavior is not yet ported to the imported
+worker architecture. No installed executable, model, profile or user history was replaced.
+English only is active; Roman Hinglish and AI cleanup remain off. Detailed behavior and earlier
+live acceptance belong in `voice-workspace-features.md` and the owning Voice Workspace guides.
+Dedicated spoken self-correction remains proposed, not implemented.
 
 ## Files
 
@@ -44,7 +41,8 @@ the current source checks and remaining release/device gates.
   platform packaging configuration.
 - `src/` — React/TypeScript interface, settings, onboarding, overlay, stores, and translations.
 - `tests/` — end-to-end and regression coverage.
-- `.github/workflows/` — upstream quality, build, packaging, and release automation.
+- `.github/workflows/` — upstream automation plus personal `windows-arm64-build.yml` and reusable
+  `upstream-import-checks.yml` validation; read before changing cloud checks.
 - `package.json` and `bun.lock` — Bun-managed frontend/tooling dependency definitions.
 - `LICENSE` — upstream MIT license, which must remain with redistributed copies.
 

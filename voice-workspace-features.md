@@ -43,8 +43,18 @@ dormant/recoverable; its synthetic script tests were not a successful acoustic/m
   background while the user speaks (batch/full-recording path only). It holds the engine lock, so a
   release during warm-up waits instead of failing, and uses `try_lock` so it never waits behind a
   load or transcription. INFO logs `dictation_rewarm_ms` and `idle_s`, no content. Built from GitHub
-  `main` (the deployed ARM64 source), so it must be ported when the upstream `73c09585` import is
+  `main` (the deployed ARM64 source). Akshat's retest confirmed it removes the slow first dictation
+  after idle. It must be ported to the supervised worker before the upstream `73c09585` import is
   adopted. `cargo fmt`/Clippy were not run for that deployment.
+- **Early-chunk recognition (branch `arm64-rewarm` only, opt-in `early_chunk_recognition`, no UI
+  toggle):** in full-recording mode with VAD on, a worker fed by the stream router recognizes each
+  finished phrase while the key is still held. A phrase counts as finished when no frame arrives
+  for 200 ms (VAD already drops pauses, after its 450 ms hangover) and it holds at least 3 s of audio.
+  On release only the audio after the last pause is decoded; results are joined with spaces. Each
+  phrase uses the normal `transcribe()` pipeline, so finalize skips a second post-processing pass.
+  Any failure falls back to transcribing the whole recording. INFO logs `early_chunks` counts and
+  audio/decode milliseconds, no content. Limits: a cut mid-sentence can add a period; a cancel
+  during a phrase decode followed at once by a new dictation can still collide with the engine.
 - Release INFO logs contain `dictation_latency` with capture, recognition, output, paste and
   stop-to-paste milliseconds, never transcript content in that new metric. Keep debug mode off.
 - Headless `--stats-only --json` omits transcript text; `--list-devices --json` exposes stable GPU
@@ -64,8 +74,10 @@ existing translated strings are preserved. This does not claim translated suppor
 The current source imports upstream `73c09585` and ports this profile to its supervised inference
 worker and asynchronous history jobs. Full-recording mode also suppresses the new live-chunk route;
 conversion failures propagate through history jobs, and history still displays/copies delivery text.
-The new policy/converter/history checks pass locally. Cloud compilation is pending; the build/live
-acceptance below belongs to the previously deployed binary, which has not been replaced.
+The new policy/converter/history checks pass locally. Full frontend/quality checks and the
+Windows ARM64 source build pass, and the repaired full Rust suite passes. `windows-local-setup.md`
+owns the exact revisions and runs. The build/live acceptance below belongs to the previously
+deployed binary, which has not been replaced.
 
 Eight native converter tests cover mixed text, H01–H07 synthetic fixtures, English identifiers,
 negation/numbers, conjunct/nukta/digits, exact loanwords, fail-closed symbols and idempotence.
