@@ -122,7 +122,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let load_ms = started.elapsed().as_millis();
     let backend = model.backend();
     let bound_device = model.device()?.description;
-    let supports_streaming = model.capabilities().supports_streaming;
+    let supports_streaming = model.capabilities()?.supports_streaming;
     if args[4] == "stream" && !supports_streaming {
         return Err("Model cannot stream".into());
     }
