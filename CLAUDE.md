@@ -17,6 +17,10 @@ worked perfectly, cleanup off; broader accuracy, quantitative latency and insert
 and signed packaging remain open. Dedicated spoken self-correction
 is proposed, not implemented or enabled; see the Voice Workspace framework and fixtures.
 
+The imported source is a verification candidate. Earlier live/build acceptance refers to the
+previous deployed binary, which this update does not replace. `windows-local-setup.md` owns
+the current source checks and remaining release/device gates.
+
 ## Files
 
 - `../voice-workspace/CLAUDE.md` — owning context for the standalone integrated voice app;
@@ -43,7 +47,9 @@ is proposed, not implemented or enabled; see the Voice Workspace framework and f
 
 ## Working agreement
 
-- Treat `cjpais/Handy` as the read-only `upstream` remote. Publish project work only to Akshat's
+- The final upstream import is `73c095857bc4eadff097f64767c40ad129cc372d`; custom dictation behavior is ported
+  to its supervised worker API. The `upstream` remote is removed at Akshat's request; future
+  updates are manual. Preserve source provenance as `cjpais/Handy`. Publish only to Akshat's
   GitHub repository, which is public by his choice; review every push as public content.
 - Preserve upstream Git history, copyright notices, attribution, and the MIT license.
 - Keep implemented, locally verified, and merely documented behavior distinct. Do not claim mobile

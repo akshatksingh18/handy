@@ -1,0 +1,28 @@
+name: Upstream import checks
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-import-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.2"
+      - name: Install locked frontend dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Check retained history delivery
+        run: bun src/components/settings/history/deliveryText.test.ts
+      - name: Build and type-check the complete frontend
+        run: bun run build

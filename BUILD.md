@@ -2,6 +2,10 @@
 
 This guide covers how to set up the development environment and build Handy from source across different platforms.
 
+For this independent fork, full builds and test suites run on GitHub Actions. Local checks stay
+small under the workspace policy. The final upstream source is imported and its Git remote removed;
+`windows-local-setup.md` owns candidate validation and the unchanged deployed-runtime boundary.
+
 ## Prerequisites
 
 ### All Platforms
@@ -16,21 +20,6 @@ This guide covers how to set up the development environment and build Handy from
 
 - Xcode Command Line Tools
 - Install with: `xcode-select --install`
-
-##### Intel Mac (x86_64)
-
-Prebuilt ONNX Runtime binaries are not available for Intel Macs. Install ONNX Runtime via Homebrew and link dynamically:
-
-```bash
-brew install onnxruntime
-ORT_LIB_LOCATION=$(brew --prefix onnxruntime)/lib ORT_PREFER_DYNAMIC_LINK=1 bun run tauri dev
-```
-
-The same environment variables apply for production builds:
-
-```bash
-ORT_LIB_LOCATION=$(brew --prefix onnxruntime)/lib ORT_PREFER_DYNAMIC_LINK=1 bun run tauri build
-```
 
 #### Windows
 

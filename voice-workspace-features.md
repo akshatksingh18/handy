@@ -51,6 +51,13 @@ dormant/recoverable; its synthetic script tests were not a successful acoustic/m
 
 ## Verification and limitations
 
+The current source imports upstream `73c09585` and ports this profile to its supervised inference
+worker and asynchronous history jobs. Full-recording mode also suppresses the new live-chunk route;
+conversion failures propagate through history jobs, and history still displays/copies delivery text.
+The new policy/converter/history checks pass locally. Cloud compilation is pending; the build/live
+acceptance below belongs to the previously deployed binary, which has not been replaced.
+
+
 Eight native converter tests cover mixed text, H01–H07 synthetic fixtures, English identifiers,
 negation/numbers, conjunct/nukta/digits, exact loanwords, fail-closed symbols and idempotence.
 Six history delivery regression checks, TypeScript, frontend build and changed-file ESLint pass.

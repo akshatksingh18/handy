@@ -6,7 +6,23 @@ Visual Studio Build Tools 2026, Bun 1.4.2, Vulkan SDK 1.4.309.0, ONNX Runtime 1.
 `%LOCALAPPDATA%\handy-build-deps`; Bun is installed in the user's npm global directory. These
 are local build dependencies, not tracked repository content.
 
-## Rebuild on this machine
+## Current source and recovery
+
+The current candidate includes final upstream source `73c095857bc4eadff097f64767c40ad129cc372d`, retaining the
+English profile, opt-in full-recording recognition, manual vocabulary matching, history delivery,
+startup warm-up and timing-only diagnostics. Native inference now uses upstream's supervised worker;
+warm-up uses the same worker without capturing audio or publishing text. Full-recording mode
+disables both live streaming and live chunking. The `upstream` remote is removed; `origin` remains.
+
+Local pre-import history, worktree edits, and the imported source tip are retained under `.git/local-recovery/upstream-import-20261026/` and `refs/local-recovery/`. These recovery objects are local only; do not push them.
+
+Targeted local checks pass: the full-recording policy across eight model/setting combinations,
+eight converter regressions, six history-delivery checks and parsing of the four edited TypeScript
+interfaces. Whole-project/cloud compilation remains pending. No installed executable, profile, model
+or user history is replaced. Live microphone/paste acceptance must be repeated before deploying this candidate.
+Use the current BUILD.md for native prerequisites; the recipe below describes the older x64 baseline.
+
+## Previous x64 rebuild baseline
 
 Install frontend dependencies with `bun install --frozen-lockfile`. The combined upstream
 `bun run build` script fails here because Windows Device Guard blocks Bun's generated
