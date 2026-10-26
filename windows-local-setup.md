@@ -98,8 +98,12 @@ Status: the first run on `main` (commit `12ee212`, run 40252857590) passed. The 
 27 min 34 s on a cold Rust cache (about 24 min of it the release compile) with Rust 1.98.0, Bun
 1.4.2 and clang-cl 22.1.8. `handy.exe --list-devices` reported one device, `kind=cpu` (Cobalt 100
 on the runner). The artifact (19,166,163 bytes) holds `handy.exe` (SHA-256 `61170cd9…6bad`), the
-staged ARM64 VC++ runtime DLLs and `SHA256SUMS.txt`. Not yet verified: running that exe on the
-Snapdragon laptop, and Parakeet's speed on its CPU. A push to `main` also triggers
+staged ARM64 VC++ runtime DLLs and `SHA256SUMS.txt`. On the Snapdragon X laptop the exe runs
+without an application-control block, binds the Oryon CPU and passed a live Notepad dictation test;
+Voice Workspace's `setup.md` and `performance.md` own those results. The workflow also builds
+branches: run 40412889343 built `arm64-rewarm` (commit `ff21566`, idle re-warm) in 13 min 18 s on
+a warm cache, `handy.exe` SHA-256 `abe07448…3e91`, DLLs unchanged; that exe is now deployed on the
+Snapdragon laptop. Pushing a non-`main` branch triggers no workflow. A push to `main` also triggers
 `main-build.yml` (macOS, Linux and Windows builds); put `[skip ci]` in the commit message when
 pushing only workflow or documentation changes.
 

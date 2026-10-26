@@ -19,7 +19,8 @@ import { isChinese } from "@/lib/utils/languageSuggestions";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { audioFeedbackEnabled, getSetting, updateSetting, isUpdating } = useSettings();
+  const { audioFeedbackEnabled, getSetting, updateSetting, isUpdating } =
+    useSettings();
   const isLinux = type() === "linux";
   // Only for Chinese speakers, or anyone who already picked a script.
   const speaksChinese =

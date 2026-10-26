@@ -321,6 +321,24 @@
     "lockedWhileTranscribing": "Podràs canviar de model quan acabi la transcripció a l'Historial."
   },
   "settings": {
+    "voiceWorkspace": {
+      "title": "Voice Workspace (experimental)",
+      "preferBatch": {
+        "label": "Use full-recording recognition",
+        "description": "Recognize the complete recording on release instead of using streaming text. Can improve technical words and sentence punctuation in short dictation; longer recordings can take more time after release. No live word preview. Restart Handy after changing this so startup warm-up primes the chosen path."
+      },
+      "retryRomanHistory": "Retry this recording to create Roman-Hinglish output. Raw recognition is hidden by default.",
+      "showRaw": "Show raw recognition (recovery only)",
+      "hideRaw": "Hide raw recognition",
+      "romanHinglish": {
+        "label": "Hindi in Roman Hinglish",
+        "description": "Write Hindi using English letters, without translating it. English words stay unchanged. Fast and offline; uncommon words may have imperfect spellings. This disables Translate to English."
+      },
+      "preloadModel": {
+        "label": "Warm model on startup",
+        "description": "Load the selected downloaded model and prime its local batch or streaming path with discarded synthetic silence before dictation. Does not open the microphone. Wait for loading to finish; uses extra memory. Set Model Unload to Never to keep it warm."
+      }
+    },
     "modelSettings": {
       "title": "Configuració de {{model}}"
     },

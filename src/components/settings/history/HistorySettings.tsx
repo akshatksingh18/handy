@@ -546,9 +546,9 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
               : deliveryText === undefined
                 ? t("settings.voiceWorkspace.retryRomanHistory")
                 : entry.source_name
-                ? // Cancelled, interrupted by a quit, or failed.
-                  t("settings.history.notTranscribed")
-                : t("settings.history.transcriptionFailed")}
+                  ? // Cancelled, interrupted by a quit, or failed.
+                    t("settings.history.notTranscribed")
+                  : t("settings.history.transcriptionFailed")}
         </p>
         {hasTranscription && !retrying && (expanded || overflows) && (
           <button

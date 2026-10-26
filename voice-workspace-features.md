@@ -38,6 +38,13 @@ dormant/recoverable; its synthetic script tests were not a successful acoustic/m
   the microphone, deliver/store the synthetic result or fetch models. Model Unload → Never avoids repeated idle model loads; it
   consumes RAM/VRAM and is appropriate only for this measured test profile. Startup itself takes
   longer; wait for loading to finish. Warm-up failures are logged and can leave first-run latency.
+- **Idle re-warm (branch `arm64-rewarm` only, not yet on local `main`):** when a dictation starts
+  after 15 s without use and warm-up is enabled, the same discarded one-second warm-up runs in the
+  background while the user speaks (batch/full-recording path only). It holds the engine lock, so a
+  release during warm-up waits instead of failing, and uses `try_lock` so it never waits behind a
+  load or transcription. INFO logs `dictation_rewarm_ms` and `idle_s`, no content. Built from GitHub
+  `main` (the deployed ARM64 source), so it must be ported when the upstream `73c09585` import is
+  adopted. `cargo fmt`/Clippy were not run for that deployment.
 - Release INFO logs contain `dictation_latency` with capture, recognition, output, paste and
   stop-to-paste milliseconds, never transcript content in that new metric. Keep debug mode off.
 - Headless `--stats-only --json` omits transcript text; `--list-devices --json` exposes stable GPU
@@ -49,6 +56,9 @@ dormant/recoverable; its synthetic script tests were not a successful acoustic/m
   recognized text. It reports raw comma/end-punctuation presence and separate post-ASR vocabulary
   timing/errors. It does not benchmark the complete GUI, mic, VAD, history, clipboard or paste.
 
+The fork-specific experimental labels have explicit English fallbacks in every locale catalog;
+existing translated strings are preserved. This does not claim translated support for that profile.
+
 ## Verification and limitations
 
 The current source imports upstream `73c09585` and ports this profile to its supervised inference
@@ -56,7 +66,6 @@ worker and asynchronous history jobs. Full-recording mode also suppresses the ne
 conversion failures propagate through history jobs, and history still displays/copies delivery text.
 The new policy/converter/history checks pass locally. Cloud compilation is pending; the build/live
 acceptance below belongs to the previously deployed binary, which has not been replaced.
-
 
 Eight native converter tests cover mixed text, H01–H07 synthetic fixtures, English identifiers,
 negation/numbers, conjunct/nukta/digits, exact loanwords, fail-closed symbols and idempotence.

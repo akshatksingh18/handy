@@ -830,9 +830,17 @@ mod tests {
 
     #[test]
     fn test_apply_custom_words_preserves_article_before_split_technical_term() {
-        let words = vec!["PostgreSQL".to_string(), "Kubernetes".to_string(), "REST API".to_string()];
+        let words = vec![
+            "PostgreSQL".to_string(),
+            "Kubernetes".to_string(),
+            "REST API".to_string(),
+        ];
         assert_eq!(
-            apply_custom_words("We should review a post-Gree SQL Kubernetes and the REST API before release", &words, 0.18),
+            apply_custom_words(
+                "We should review a post-Gree SQL Kubernetes and the REST API before release",
+                &words,
+                0.18
+            ),
             "We should review a PostgreSQL Kubernetes and the REST API before release"
         );
     }
@@ -840,7 +848,10 @@ mod tests {
     #[test]
     fn test_apply_custom_words_preserves_prefix_before_exact_suffix() {
         let words = vec!["OpenAI".to_string()];
-        assert_eq!(apply_custom_words("use an Open AI model", &words, 0.5), "use an OpenAI model");
+        assert_eq!(
+            apply_custom_words("use an Open AI model", &words, 0.5),
+            "use an OpenAI model"
+        );
         assert_eq!(apply_custom_words("not Open AI", &words, 0.5), "not OpenAI");
     }
 

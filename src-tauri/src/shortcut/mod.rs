@@ -682,7 +682,9 @@ pub fn apply_window_theme(app: &AppHandle, theme: Theme) {
 pub fn change_translate_to_english_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     if enabled && settings.roman_hinglish_enabled {
-        return Err("Roman Hinglish preserves Hindi; turn it off before enabling translation".into());
+        return Err(
+            "Roman Hinglish preserves Hindi; turn it off before enabling translation".into(),
+        );
     }
     settings.translate_to_english = enabled;
     settings::write_settings(&app, settings);
@@ -716,7 +718,10 @@ pub fn change_preload_model_setting(app: AppHandle, enabled: bool) -> Result<(),
 
 #[tauri::command]
 #[specta::specta]
-pub fn change_prefer_batch_transcription_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+pub fn change_prefer_batch_transcription_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.prefer_batch_transcription = enabled;
     settings::write_settings(&app, settings);

@@ -6,15 +6,18 @@ Akshat's independently maintained copy of the MIT-licensed Handy desktop dictati
 Handy is the production-quality Windows, macOS, and Linux foundation replacing the earlier
 WhimprFlow proof of concept; mobile clients are not part of the current implementation.
 
-**Status:** Active desktop foundation — the Windows source build and local startup are verified,
-and this imported history is published in Akshat's public `akshatksingh18/handy` repository.
+**Status:** Active desktop foundation — the deployed Windows baseline is verified; the final-upstream
+source candidate is undergoing cloud checks on `sync/final-upstream-20261026`. The independent
+repository is public at `akshatksingh18/handy`.
 Akshat's Turbo live test still took 3–4 seconds and Hindi output failed. Active product scope is
 now English only; the converter is off, while native streaming warm-up and diagnostics support
 the Parakeet profile. Akshat accepts its earlier streaming speed, but live E03 failed PostgreSQL
 and punctuation. The opt-in full-recording/manual-vocabulary slice is implemented; deployment
 evidence belongs in the setup guides. Akshat reports its live technical-word/punctuation retest
 worked perfectly, cleanup off; broader accuracy, quantitative latency and insertion/reliability
-and signed packaging remain open. Dedicated spoken self-correction
+and signed packaging remain open. An idle re-warm on dictation start is built on branch
+`arm64-rewarm` (from GitHub `main`) and deployed on the ARM64 laptop for retest; it is not yet on
+local `main`. Dedicated spoken self-correction
 is proposed, not implemented or enabled; see the Voice Workspace framework and fixtures.
 
 The imported source is a verification candidate. Earlier live/build acceptance refers to the
