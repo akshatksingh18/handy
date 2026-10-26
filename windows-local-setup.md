@@ -78,10 +78,14 @@ pins Bun 1.4.2, Rust 1.98.0 and SHA-pinned actions, builds the static CPU-only
 CPU and no GPU, and uploads `handy.exe`, the staged ARM64 VC++ runtime DLLs and `SHA256SUMS.txt` as a
 7-day artifact. The ARM64 build has no GPU backend and no sibling `ggml*`/`transcribe` DLLs.
 
-Status: written and parsed as YAML only. It has not run, so runner availability for this private
-repository, build time, billed minutes and the speed of Parakeet on the Snapdragon CPU are all
-unverified. A push to `main` also triggers `main-build.yml` (macOS, Linux and Windows builds); put
-`[skip ci]` in the commit message when pushing only this workflow or documentation.
+Status: the first run on `main` (commit `12ee212`, run 40252857590) passed. The `build` job took
+27 min 34 s on a cold Rust cache (about 24 min of it the release compile) with Rust 1.98.0, Bun
+1.4.2 and clang-cl 22.1.8. `handy.exe --list-devices` reported one device, `kind=cpu` (Cobalt 100
+on the runner). The artifact (19,166,163 bytes) holds `handy.exe` (SHA-256 `61170cd9…6bad`), the
+staged ARM64 VC++ runtime DLLs and `SHA256SUMS.txt`. Not yet verified: running that exe on the
+Snapdragon laptop, and Parakeet's speed on its CPU. A push to `main` also triggers
+`main-build.yml` (macOS, Linux and Windows builds); put `[skip ci]` in the commit message when
+pushing only workflow or documentation changes.
 
 ## Local ASR diagnostic
 
