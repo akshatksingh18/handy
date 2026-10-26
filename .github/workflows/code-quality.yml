@@ -29,11 +29,17 @@ on:
       - "tailwind.config.*"
       - ".github/workflows/**"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  import-frontend:
+    uses: ./.github/workflows/upstream-import-checks.yml
+
   code-quality:
     runs-on: ubuntu-latest
     steps:
