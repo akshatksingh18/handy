@@ -1,6 +1,6 @@
 # Handy
 
-> This private repository is Akshat's independently maintained copy of
+> This public repository is Akshat's independently maintained copy of
 > [cjpais/Handy](https://github.com/cjpais/Handy), preserving its Git history and MIT license.
 > Windows build/startup passed and an initial live Notepad test produced text, but failed
 > speed/Hinglish/acronym acceptance. Turbo's updated live test still took 3–4 seconds and Hindi

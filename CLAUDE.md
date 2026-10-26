@@ -7,7 +7,7 @@ Handy is the production-quality Windows, macOS, and Linux foundation replacing t
 WhimprFlow proof of concept; mobile clients are not part of the current implementation.
 
 **Status:** Active desktop foundation — the Windows source build and local startup are verified,
-and this imported history is published in Akshat's private `akshatksingh18/handy` repository.
+and this imported history is published in Akshat's public `akshatksingh18/handy` repository.
 Akshat's Turbo live test still took 3–4 seconds and Hindi output failed. Active product scope is
 now English only; the converter is off, while native streaming warm-up and diagnostics support
 the Parakeet profile. Akshat accepts its earlier streaming speed, but live E03 failed PostgreSQL
@@ -44,7 +44,7 @@ is proposed, not implemented or enabled; see the Voice Workspace framework and f
 ## Working agreement
 
 - Treat `cjpais/Handy` as the read-only `upstream` remote. Publish project work only to Akshat's
-  private GitHub repository unless he explicitly changes that policy.
+  GitHub repository, which is public by his choice; review every push as public content.
 - Preserve upstream Git history, copyright notices, attribution, and the MIT license.
 - Keep implemented, locally verified, and merely documented behavior distinct. Do not claim mobile
   support; the accepted production base is the cross-platform desktop application.

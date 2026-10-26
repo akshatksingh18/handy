@@ -1,6 +1,6 @@
 # Voice Workspace dictation changes
 
-These changes are maintained in Akshat's private Handy fork. The integrated notes/meeting
+These changes are maintained in Akshat's public Handy fork. The integrated notes/meeting
 application is still planned; no restricted Granola/Natively code is used here.
 
 ## Implemented behavior
