@@ -16,19 +16,30 @@ no secrets.
 - `playwright.yml` (PR or manual): Playwright smoke tests against the dev server.
 - `windows-arm64-build.yml` (manual only): the unsigned, CPU-only `aarch64-pc-windows-msvc` exe on
   the `windows-11-arm` runner, Rust 1.98.0, clang-cl + Ninja, `tauri build --no-bundle`. It checks
-  that `--list-devices` shows a CPU and no GPU, and uploads `voice-workspace.exe`, the eight ARM64
-  VC++ runtime DLLs and `SHA256SUMS.txt` as a 7-day artifact. There are no `ggml*`/`transcribe`
-  DLLs in this build.
+  that `--list-devices` shows a CPU and no GPU, and uploads a ready-to-run folder
+  (`voice-workspace.exe`, the eight ARM64 VC++ runtime DLLs, `resources/` and a recursive
+  `SHA256SUMS.txt`) as a 7-day artifact. There are no `ggml*`/`transcribe` DLLs in this build.
 - `windows-x64-build.yml` (manual only): the unsigned `x86_64-pc-windows-msvc` exe with the Vulkan
   GPU backend for the x64 NVIDIA laptop, on `windows-2025`, Rust 1.98.0, Vulkan SDK 1.4.309.0 and
   `spirv-headers` from vcpkg. It checks that the Vulkan backend DLL was staged and that
-  `--list-devices` runs (the runner has no GPU, so only its CPU shows), and uploads
-  `voice-workspace.exe`, the transcription runtime DLLs, the VC++ runtime with OpenMP and
-  `SHA256SUMS.txt` as a 7-day artifact.
+  `--list-devices` runs (the runner has no GPU, so only its CPU shows), and uploads a
+  ready-to-run folder (`voice-workspace.exe`, the transcription runtime DLLs, the VC++ runtime
+  with OpenMP, `resources/` and a recursive `SHA256SUMS.txt`) as a 7-day artifact.
+- `release.yml` (manual only): checks that `tauri.conf.json`, `Cargo.toml` and `package.json` agree
+  on the version and that its tag is new, runs both builds above, verifies their checksums, zips
+  each folder with a `VERSION.txt` as `voice-workspace-windows-arm64.zip` and
+  `voice-workspace-windows-x64.zip`, and publishes GitHub Release `v<version>` with a
+  `SHA256SUMS.txt` for the zips. Only its publish job gets `contents: write`. The fixed asset
+  names keep `releases/latest/download/<zip>` stable for the install script. The first release,
+  [v0.10.0](https://github.com/akshatksingh18/voice-workspace-desktop/releases/tag/v0.10.0)
+  ([run 40520112353](https://github.com/akshatksingh18/voice-workspace-desktop/actions/runs/40520112353),
+  commit `3c57e35c`), passed all four jobs: ARM64 zip 12.9 MB, x64 zip 30.5 MB, each holding only
+  the exe, DLLs, `resources/`, `VERSION.txt` and checksums. The install script then installed the
+  ARM64 zip on the Snapdragon laptop, which starts and warms Parakeet normally.
 
-There is no release, signing or installer workflow; Handy's were removed. Run a workflow on a
-branch with `gh workflow run <file> --ref <branch>`; pushing a branch other than `main` starts
-nothing on its own.
+Releases are unsigned and there is no installer; Handy's signing and installer workflows were
+removed. Run a workflow on a branch with `gh workflow run <file> --ref <branch>`; pushing a
+branch other than `main` starts nothing on its own.
 
 ## Current verified source
 
@@ -60,8 +71,8 @@ Local recovery copies of the pre-import history are kept under `.git/local-recov
 
 ## Snapdragon X laptop (ARM64)
 
-No Rust, Bun or Visual Studio toolchain is installed; its exe comes from
-`windows-arm64-build.yml`. Windows runs the unsigned exe without an application-control block
+No Rust, Bun or Visual Studio toolchain is installed; it installs the ARM64 zip from a GitHub
+Release with Voice Workspace's `scripts/install-desktop.ps1`. Windows runs the unsigned exe without an application-control block
 (Smart App Control off; nothing bypassed). The deployed copy and its rollback copies are recorded
 in `../voice-workspace/setup.md`.
 
@@ -72,12 +83,11 @@ GitHub as their source.
 
 ## x64 laptop (NVIDIA)
 
-Like the Snapdragon laptop, it no longer needs a local build: download the
-`windows-x64-build.yml` artifact, check `SHA256SUMS.txt`, and replace the exe and DLLs in its
-runtime folder, keeping the old exe as a rollback copy. Copy `src-tauri/resources` over the
-runtime's `resources/` too: the current engine needs `silero-vad-v6.2-F32.gguf`, which Handy-era
-runtimes lack. Its running copy is still an older Handy-era build in `runtime/handy/`; the steps
-are in `../voice-workspace/tasks.md`. The first run on `main`
+Like the Snapdragon laptop, it no longer needs a local build: on that laptop, pull
+`voice-workspace` and run `scripts/install-desktop.ps1`, which picks the x64 zip, renames the old
+`runtime/handy/` to `runtime/desktop/`, keeps the old exe, DLLs and `resources/` in a rollback
+folder and brings the `silero-vad-v6.2-F32.gguf` voice detector that Handy-era runtimes lack. Its
+running copy is still an older Handy-era build until then. The first `windows-x64-build.yml` run
 ([run 40496231458](https://github.com/akshatksingh18/voice-workspace-desktop/actions/runs/40496231458),
 commit `411d0a09`, about 26 min on a cold cache) passed: it staged `voice-workspace.exe`
 (`d345a5dc…0c37`), `transcribe.dll`, `ggml.dll`, `ggml-base.dll`, `ggml-vulkan.dll`, ten per-CPU

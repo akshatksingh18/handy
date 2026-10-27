@@ -39,10 +39,15 @@ nothing is packaged or run there, and macOS is not built.
 
 ## Build and run
 
-- **Windows ARM64 or x64:** run `windows-arm64-build.yml` or
-  `windows-x64-build.yml` in GitHub Actions and download its artifact
-  (`voice-workspace.exe`, the DLLs it needs and `SHA256SUMS.txt`). Copy
-  `src-tauri/resources` beside the exe as `resources/`.
+- **Windows (either laptop):** each
+  [GitHub Release](https://github.com/akshatksingh18/voice-workspace-desktop/releases)
+  has `voice-workspace-windows-arm64.zip` (Snapdragon) and
+  `voice-workspace-windows-x64.zip` (Intel/AMD, NVIDIA through Vulkan), each a
+  ready-to-run app folder, plus `SHA256SUMS.txt`. Voice Workspace's
+  `scripts/install-desktop.ps1` picks the right one, checks it and installs it
+  with a rollback copy. A new release is made by bumping the version and
+  running `release.yml`; `windows-arm64-build.yml` and `windows-x64-build.yml`
+  build one-off test copies.
 - **Other targets and development:** see [BUILD.md](BUILD.md) and
   [windows-local-setup.md](windows-local-setup.md).
 - **Portable mode:** a file named `portable` next to the exe keeps settings,

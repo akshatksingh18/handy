@@ -9,8 +9,9 @@ Product requirements, evaluation and test results live in `../voice-workspace/`.
 **Status:** Active desktop app, Windows-first. `main` contains Handy's final imported source
 (`73c09585`), this project's dictation features and the standalone makeover. The Snapdragon X
 laptop runs the CI-built ARM64 exe from `main`; the combined live retest (idle re-warm, early
-phrases, rename) is the next acceptance step. The x64 laptop still runs an older build until it
-installs the CI-built x64 exe from `main`; neither laptop needs a local compiler.
+phrases, rename) is the next acceptance step. Both laptops install GitHub Releases (ARM64 and
+x64 zips) with Voice Workspace's `install-desktop.ps1`; neither needs a local compiler. The x64
+laptop still runs an older build until that script is run there.
 
 ## Files
 
@@ -31,8 +32,8 @@ installs the CI-built x64 exe from `main`; neither laptop needs a local compiler
 - `src/` — React/TypeScript interface; `src/lib/model-catalog/` is the vendored model catalog
   library (see its README for provenance and license).
 - `tests/` — Playwright smoke tests.
-- `.github/workflows/` — code quality, Rust tests (on Linux), Playwright and the manual Windows
-  ARM64 and x64 builds.
+- `.github/workflows/` — code quality, Rust tests (on Linux), Playwright, the manual Windows
+  ARM64 and x64 builds, and `release.yml`, which builds both and publishes a GitHub Release.
 - `package.json` and `bun.lock` — Bun-managed frontend dependencies.
 - `LICENSE` — MIT license with Handy's original copyright notice; keep it.
 
@@ -48,6 +49,9 @@ installs the CI-built x64 exe from `main`; neither laptop needs a local compiler
 - The portable marker text stays `Handy Portable Mode` so existing portable `Data/` folders keep
   loading; do not change it without a migration.
 - Full builds and test suites run on GitHub Actions; locally run only quick targeted checks.
+- Releases: bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (and its
+  lock entry) and `package.json` together, then run `release.yml`; it refuses an existing tag.
+  Release zips are public and must never contain settings, models, history or recordings.
 - English only is the active scope. Translation, Roman Hinglish and AI cleanup stay off in the
   test profile; keep the dormant converter for recovery, not as a Hindi readiness claim.
 - Keep implemented, CI-verified and live-tested behavior distinct. A live microphone/paste test
