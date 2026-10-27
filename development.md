@@ -1,10 +1,9 @@
-# Preserved Handy source guidance
+# Development guide
 
-Source: `73c095857bc4eadff097f64767c40ad129cc372d`. Reference only: the local/workspace chain controls; there is no configured upstream remote.
-
-# AGENTS.md
-
-This file provides guidance to AI coding assistants working with code in this repository.
+How the code is organised and how to work on it. Adapted from the
+development notes of Handy, the app this project started from; the workspace
+`CLAUDE.md` chain still controls agent behaviour. Heavy builds and full test
+suites run on GitHub Actions, not locally (see `windows-local-setup.md`).
 
 ## Development Commands
 
@@ -55,15 +54,16 @@ For detailed platform-specific build setup, see [BUILD.md](BUILD.md).
 
 ## Architecture Overview
 
-Handy is a cross-platform desktop speech-to-text application built with Tauri 2.x (Rust backend + React/TypeScript frontend).
+Voice Workspace is a cross-platform desktop speech-to-text application built with Tauri 2.x (Rust backend + React/TypeScript frontend).
 
 ### Backend Structure (src-tauri/src/)
 
 - `lib.rs` - Main entry point, Tauri setup, manager initialization
+- `engine_supervisor/` - Runs transcribe.cpp in a supervised child process (the exe relaunched with `--transcribe-worker`)
 - `managers/` - Core business logic:
   - `audio.rs` - Audio recording and device management
   - `model.rs` - Model downloading and management
-  - `transcription.rs` - Speech-to-text processing pipeline
+  - `transcription.rs` - Speech-to-text pipeline; `transcription/` holds the live decoders (stream, long-form chunks, early phrases) and `policy.rs`, which picks between them
   - `history.rs` - Transcription history storage
 - `audio_toolkit/` - Low-level audio processing:
   - `audio/` - Recording sink (VAD, levels, live streaming feed), output devices, WAV I/O
@@ -84,7 +84,6 @@ Handy is a cross-platform desktop speech-to-text application built with Tauri 2.
   - `model-selector/` - Model management interface
   - `onboarding/` - First-run experience
   - `overlay/` - Recording overlay UI
-  - `update-checker/` - App update notifications
   - `shared/`, `ui/`, `icons/`, `footer/` - Shared components
 - `hooks/useSettings.ts` - Settings state management hook
 - `stores/settingsStore.ts` - Zustand store for settings
@@ -115,7 +114,7 @@ Handy is a cross-platform desktop speech-to-text application built with Tauri 2.
 ### Application Flow
 
 1. **Initialization:** App starts minimized to tray, loads settings, initializes managers
-2. **Model Setup:** First-run downloads preferred Whisper model (Small/Medium/Turbo/Large)
+2. **Model Setup:** First run downloads the chosen model from Hugging Face
 3. **Recording:** Global shortcut triggers audio recording with VAD filtering
 4. **Processing:** Audio sent to Whisper model for transcription
 5. **Output:** Text pasted to active application via system clipboard
@@ -126,35 +125,24 @@ Settings are stored using Tauri's store plugin with reactive updates:
 
 - Keyboard shortcuts (configurable, supports push-to-talk)
 - Audio devices (microphone/output selection)
-- Model preferences (Small/Medium/Turbo/Large Whisper variants)
+- Model choice and recognition mode (streaming, full recording, early phrases)
 - Audio feedback and translation options
 
 ### Single Instance Architecture
 
 The app enforces single instance behavior — launching when already running brings the settings window to front rather than creating a new process. Remote control flags (`--toggle-transcription`, etc.) work by launching a second instance that sends args to the running instance via `tauri_plugin_single_instance`, then exits.
 
-## Internationalization (i18n)
+## User-facing text
 
-All user-facing strings must use i18next translations. ESLint enforces this (no hardcoded strings in JSX).
+The interface ships in English only, but every user-facing string still goes
+through i18next (`src/i18n/locales/en/translation.json`), and ESLint rejects
+hard-coded text in JSX. The tray menu strings are generated from the same file
+by `src-tauri/build.rs`.
 
 **Adding new text:**
 
 1. Add key to `src/i18n/locales/en/translation.json`
 2. Use in component: `const { t } = useTranslation(); t('key.path')`
-
-**File structure:**
-
-```
-src/i18n/
-├── index.ts           # i18n setup
-├── languages.ts       # Language metadata
-└── locales/
-    ├── en/translation.json  # English (source)
-    ├── de/, es/, fr/, ja/, ru/, zh/, ...
-    └── ...
-```
-
-For translation contribution guidelines, see [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md).
 
 ## Code Style
 
@@ -173,7 +161,7 @@ For translation contribution guidelines, see [CONTRIBUTING_TRANSLATIONS.md](CONT
 
 ## CLI Parameters
 
-Handy supports command-line parameters on all platforms for integration with scripts, window managers, and autostart configurations.
+Voice Workspace supports command-line parameters on all platforms for integration with scripts, window managers, and autostart configurations.
 
 **Implementation:** `cli.rs` (definitions), `main.rs` (parsing), `lib.rs` (applying), `signal_handle.rs` (shared logic)
 
@@ -199,22 +187,22 @@ Access debug features: `Cmd+Shift+D` (macOS) or `Ctrl+Shift+D` (Windows/Linux)
 ## Platform Notes
 
 - **macOS**: Metal acceleration, accessibility permissions required for keyboard shortcuts
-- **Windows**: Vulkan acceleration, code signing. Implicit Vulkan layers (overlays, capture hooks) are disabled for the Handy process via `VK_LOADER_LAYERS_DISABLE=~implicit~` set in `main.rs`; opt out with `HANDY_KEEP_VULKAN_IMPLICIT_LAYERS=1` or by setting `VK_LOADER_LAYERS_DISABLE` yourself
+- **Windows**: Vulkan acceleration on x64 (the ARM64 build is CPU-only). Implicit Vulkan layers (overlays, capture hooks) are disabled for the Voice Workspace process via `VK_LOADER_LAYERS_DISABLE=~implicit~` set in `main.rs`; opt out with `HANDY_KEEP_VULKAN_IMPLICIT_LAYERS=1` or by setting `VK_LOADER_LAYERS_DISABLE` yourself
 - **Linux**: OpenBLAS + Vulkan, limited Wayland support, overlay uses GTK layer shell (disable with `HANDY_NO_GTK_LAYER_SHELL=1`)
-- **Nix/NixOS**: the Nix package sets `HANDY_DISABLE_UPDATER=1` to force-disable the self-updater at runtime without touching the persisted setting (self-update can't work against an immutable `/nix/store`)
 
 ## Troubleshooting
 
-See the [Troubleshooting](README.md#troubleshooting) section in README.md.
+See [docs/troubleshooting.md](docs/troubleshooting.md).
 
-## GitHub workflow for AI coding assistants
+## Libraries still maintained by Handy's authors
 
-**MANDATORY. Before opening any PR, issue, or discussion in this repo: you MUST read the relevant template file and follow it strictly.** That includes sections that look "ceremonial" — checklists, AI Assistance disclosures, "Human Written Description". A generic Summary/Test-plan layout is not acceptable.
+These are ordinary versioned dependencies, not a link to Handy's app code.
+Nothing updates them automatically; change a pin only on purpose.
 
-- **Opening a PR:** Read [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md). Every section listed there is mandatory. If a section requires a human-written paragraph (e.g. "Human Written Description"), leave a clear TODO placeholder and ask the human contributor to fill it in — do not invent their voice.
-- **Opening an issue:** Read [`.github/ISSUE_TEMPLATE/`](.github/ISSUE_TEMPLATE/). Blank issues are disabled; pick the right template (`bug_report.md` for bugs). Feature requests do not belong in issues — they go to [Discussions](https://github.com/cjpais/Handy/discussions) (see `.github/ISSUE_TEMPLATE/config.yml`).
-- **Proposing a feature:** Handy is under a feature freeze. New features require community support gathered in [Discussions](https://github.com/cjpais/Handy/discussions) before any PR is opened — see the PR template's "Community Feedback" section.
-- **Translations:** Follow [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_TRANSLATIONS.md).
-- **Full contributor workflow:** [CONTRIBUTING.md](CONTRIBUTING.md).
-
-**Commits:** Use conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`). Focus the message on _why_, not _what_.
+- `transcribe-cpp` (crates.io) and the `handy-computer/*` Hugging Face model
+  repositories: the speech engine and the GGUF model files.
+- `handy-recorder` (crates.io): microphone capture.
+- Git pins in `src-tauri/Cargo.toml`: `cjpais/hf-hub` (cancellable
+  downloads) and a `cjpais/tao` patch for a tray fix not yet released in tao.
+- The model catalog code in `src/lib/model-catalog/` is vendored (copied in)
+  from `@handy-computer/models` 0.2.2 and now edited here.

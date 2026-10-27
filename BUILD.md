@@ -1,10 +1,6 @@
 # Build Instructions
 
-This guide covers how to set up the development environment and build Handy from source across different platforms.
-
-For this independent fork, full builds and test suites run on GitHub Actions. Local checks stay
-small under the workspace policy. The final upstream source is imported and its Git remote removed;
-`windows-local-setup.md` owns candidate validation and the unchanged deployed-runtime boundary.
+This guide covers how to set up the development environment and build Voice Workspace from source. Windows is the tested platform; the macOS and Linux steps are inherited from Handy and not verified here. Heavy builds normally run on GitHub Actions (see `windows-local-setup.md`).
 
 ## Prerequisites
 
@@ -81,8 +77,8 @@ small under the workspace policy. The final upstream source is imported and its 
 ### 1. Clone the Repository
 
 ```bash
-git clone git@github.com:cjpais/Handy.git
-cd Handy
+git clone https://github.com/akshatksingh18/voice-workspace-desktop.git
+cd voice-workspace-desktop
 ```
 
 ### 2. Install Dependencies
@@ -107,31 +103,31 @@ This compiles a release binary and generates platform-specific bundles (deb, rpm
 
 ## Linux Install (from source)
 
-The raw binary (`src-tauri/target/release/handy`) cannot run standalone — it needs Tauri resource files (tray icons, sounds, VAD model) to be co-located at the expected path.
+The raw binary (`src-tauri/target/release/voice-workspace`) cannot run standalone — it needs Tauri resource files (tray icons, sounds, VAD model) to be co-located at the expected path.
 
 **Install from the deb bundle** (works on any Linux distro):
 
 ```bash
 cd /tmp
-ar x /path/to/Handy/src-tauri/target/release/bundle/deb/Handy_*_amd64.deb data.tar.gz
+ar x /path/to/voice-workspace-desktop/src-tauri/target/release/bundle/deb/Voice Workspace_*_amd64.deb data.tar.gz
 tar xzf data.tar.gz
-sudo cp usr/bin/handy /usr/bin/
+sudo cp usr/bin/voice-workspace /usr/bin/
 sudo cp -a usr/lib/. /usr/lib/
 sudo cp -r usr/share/icons/hicolor/* /usr/share/icons/hicolor/
-sudo cp usr/share/applications/Handy.desktop /usr/share/applications/
+sudo cp "usr/share/applications/Voice Workspace.desktop" /usr/share/applications/
 ```
 
-The runtime libraries live in the app-private `/usr/lib/Handy/` (on the binary's rpath), so no `ldconfig` step is needed.
+The runtime libraries live in the app-private `/usr/lib/voice-workspace/` (on the binary's rpath), so no `ldconfig` step is needed.
 
 After subsequent rebuilds, copy the binary and any refreshed runtime libraries:
 
 ```bash
-sudo cp src-tauri/target/release/handy /usr/bin/
-sudo mkdir -p /usr/lib/Handy
-sudo cp -a src-tauri/transcribe-libs/. /usr/lib/Handy/
+sudo cp src-tauri/target/release/voice-workspace /usr/bin/
+sudo mkdir -p /usr/lib/voice-workspace
+sudo cp -a src-tauri/transcribe-libs/. /usr/lib/voice-workspace/
 ```
 
-Resources only need re-copying if they change upstream (new icons, sounds, models, etc.).
+Resources only need re-copying if they change (new icons, sounds, models, etc.).
 
 ## Troubleshooting
 
@@ -139,15 +135,15 @@ Resources only need re-copying if they change upstream (new icons, sounds, model
 
 Local builds use the ad-hoc `signingIdentity: "-"`. A rebuild can have a new macOS code
 identity while the old **System Settings > Privacy & Security > Accessibility** entry
-remains visibly enabled, leaving Handy on `Waiting...`.
+remains visibly enabled, leaving Voice Workspace on `Waiting...`.
 
-After installing the final bundle at `/Applications/Handy.app`, quit Handy, clear only its
+After installing the final bundle at `"/Applications/Voice Workspace.app"`, quit Voice Workspace, clear only its
 stale Accessibility record, then reopen it:
 
 ```bash
-osascript -e 'tell application id "com.pais.handy" to quit' || true
-tccutil reset Accessibility com.pais.handy
-open /Applications/Handy.app
+osascript -e 'tell application id "com.akshatksingh.voiceworkspace" to quit' || true
+tccutil reset Accessibility com.akshatksingh.voiceworkspace
+open "/Applications/Voice Workspace.app"
 ```
 
 Grant Accessibility again when prompted. This does not reset Microphone or other TCC
@@ -157,8 +153,8 @@ For optional diagnosis, compare the designated requirements of the previous and 
 bundles:
 
 ```bash
-codesign -dr - /path/to/previous/Handy.app 2>&1
-codesign -dr - /Applications/Handy.app 2>&1
+codesign -dr - "/path/to/previous/Voice Workspace.app" 2>&1
+codesign -dr - "/Applications/Voice Workspace.app" 2>&1
 ```
 
 An ad-hoc requirement contains a `cdhash`; a changed requirement confirms the rebuild is
@@ -174,7 +170,7 @@ and stale-permission report.
 The error from Tauri:
 
 ```
-Bundling Handy_*_amd64.AppImage
+Bundling Voice Workspace_*_amd64.AppImage
 failed to bundle project `failed to run linuxdeploy`
 ```
 
@@ -183,7 +179,7 @@ Tauri swallows the real linuxdeploy error. To see it, run linuxdeploy manually:
 ```bash
 cd src-tauri/target/release/bundle/appimage
 ~/.cache/tauri/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
-  --appdir Handy.AppDir --plugin gtk --output appimage
+  --appdir Voice Workspace.AppDir --plugin gtk --output appimage
 ```
 
 **Workaround:** The binary, deb, and rpm bundles all build fine — only the AppImage step fails. To skip it:
@@ -238,7 +234,7 @@ around either case with a short Cargo target directory:
 $env:CARGO_TARGET_DIR = "C:\h"
 
 # Or persist it for all future terminals (note: redirects ALL your
-# Rust projects' build output, not just Handy):
+# Rust projects' build output, not just this one):
 [Environment]::SetEnvironmentVariable('CARGO_TARGET_DIR', 'C:\h', 'User')
 ```
 
@@ -246,25 +242,3 @@ Artifacts then land in `C:\h\release\...` instead of the repo's
 `src-tauri\target\`. Open a **new terminal** if you persisted the variable —
 it is only picked up by freshly started processes. Then `bun run tauri dev`
 and `bun run tauri build` work normally.
-
-### Windows `tauri build` fails at bundling with `program not found`
-
-If the build compiles all the way to `Built application at: ...\handy.exe` and
-then fails with:
-
-```
-Signing C:\...\handy.exe with a custom signing command
-failed to bundle project `program not found`
-```
-
-that's the code-signing step: `tauri.conf.json` configures a custom
-`signCommand` (`trusted-signing-cli`, Azure Trusted Signing) that only exists
-in the release CI environment. Local development doesn't need it:
-
-```powershell
-# Development (no bundling/signing at all):
-bun run tauri dev
-
-# Or compile a release binary without the installer/signing step:
-bun run tauri build --no-bundle
-```

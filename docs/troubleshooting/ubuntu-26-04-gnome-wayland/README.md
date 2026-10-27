@@ -1,5 +1,10 @@
 # Handy on Ubuntu 26.04 GNOME Wayland
 
+> Written and tested for upstream Handy 0.9.8, which this app started from. For
+> Voice Workspace, use `voice-workspace` for `handy` and
+> `com.akshatksingh.voiceworkspace` for `com.pais.handy`; `handy_keys` and
+> `handy-keys` are library names and stay the same. Not retested here.
+
 Tested on Ubuntu 26.04.1 LTS, GNOME Wayland, Handy 0.9.8.
 
 The fix is to use `ydotool` for typing and `handy_keys` for shortcuts.

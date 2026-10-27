@@ -1,71 +1,56 @@
-# Handy
+# Voice Workspace Desktop
 
-@upstream-instructions.md
+Akshat's desktop dictation app: the Tauri (Rust + React) application behind the Voice Workspace
+project. It started from the MIT-licensed Handy app and is now maintained as its own project, with
+its own name ("Voice Workspace"), icons, CI and release process. There is no upstream remote, no
+updater and no runtime download from Handy's servers; nothing pulls Handy's code in automatically.
+Product requirements, evaluation and test results live in `../voice-workspace/`.
 
-Akshat's independently maintained copy of the MIT-licensed Handy desktop dictation application.
-Handy is the production-quality Windows, macOS, and Linux foundation replacing the earlier
-WhimprFlow proof of concept; mobile clients are not part of the current implementation.
-
-**Status:** Active desktop foundation — the final upstream source passes automated validation;
-adoption waits for the accepted idle re-warm port and live microphone/paste acceptance.
-
-Local `main` includes upstream `73c09585` and the retained custom dictation profile. The reviewed
-candidate is published on `sync/final-upstream-20261026`; GitHub `main` is unchanged. Quality and
-full Rust checks pass at `9ddfa264`; the Windows ARM64 build uses formatter-equivalent native app
-source. `windows-local-setup.md` owns the exact revisions, run links and verification limits.
-
-The deployed ARM64 runtime stays on the separate `arm64-rewarm` branch, whose live retest removed
-the slow first dictation after idle; it also carries opt-in early-chunk recognition, deployed there
-and awaiting a live test. Neither is yet ported to the imported worker architecture. No installed executable, model, profile or user history was replaced.
-English only is active; Roman Hinglish and AI cleanup remain off. Detailed behavior and earlier
-live acceptance belong in `voice-workspace-features.md` and the owning Voice Workspace guides.
-Dedicated spoken self-correction remains proposed, not implemented.
+**Status:** Active desktop app, Windows-first. `main` contains Handy's final imported source
+(`73c09585`), this project's dictation features and the standalone makeover. The Snapdragon X
+laptop runs the CI-built ARM64 exe from `main`; the combined live retest (idle re-warm, early
+phrases, rename) is the next acceptance step. The x64 laptop still runs an older build until it
+is rebuilt from `main`.
 
 ## Files
 
-- `../voice-workspace/CLAUDE.md` — owning context for the standalone integrated voice app;
-  requirements/research/evaluation live there, while this fork remains the desktop base.
-- `README.md` — upstream product behavior, installation, limitations, release verification, and
-  troubleshooting; read before changing user-facing behavior or support claims.
-- `BUILD.md` — canonical platform prerequisites and source-build workflow; read before building or
-  changing dependencies, packaging, or release behavior.
-- `windows-local-setup.md` — this machine's verified Windows toolchain, build commands, runtime
-  smoke-test evidence, and remaining verification limits; read before rebuilding here.
-- `voice-workspace-features.md` — active English profile, dormant Roman-Hinglish delivery, startup warm-up,
-  latency diagnostics, regression evidence and limitations; read before dictation changes.
-- `upstream-instructions.md` — imported upstream development contract, architecture map, commands,
-  code style, platform notes, and contribution rules; follow it for all code changes.
-- `AGENTS.md` — compatibility pointer to this canonical `CLAUDE.md`; do not store independent
-  project context there.
-- `src-tauri/` — Rust/Tauri backend, native integrations, transcription pipeline, resources, and
-  platform packaging configuration.
-- `src/` — React/TypeScript interface, settings, onboarding, overlay, stores, and translations.
-- `tests/` — end-to-end and regression coverage.
-- `.github/workflows/` — upstream automation plus personal `windows-arm64-build.yml` and reusable
-  `upstream-import-checks.yml` validation; read before changing cloud checks.
-- `package.json` and `bun.lock` — Bun-managed frontend/tooling dependency definitions.
-- `LICENSE` — upstream MIT license, which must remain with redistributed copies.
+- `../voice-workspace/CLAUDE.md` — owning context for requirements, evaluation and test results.
+- `README.md` — public entry point: what the app does, platforms, build/run, credits.
+- `development.md` — architecture map, commands, code conventions and the library pins still
+  maintained by Handy's authors; read before code changes.
+- `BUILD.md` — platform prerequisites and source builds; read before building or changing
+  dependencies or packaging.
+- `windows-local-setup.md` — CI workflows, Windows build recipes, verified runs and limits; read
+  before rebuilding.
+- `voice-workspace-features.md` — this project's dictation features (English profile,
+  full-recording mode, idle re-warm, early phrases, diagnostics) and their evidence; read before
+  dictation changes.
+- `docs/troubleshooting.md` — platform notes and troubleshooting carried over from Handy's README;
+  the in-app Linux and Secure Input help links point here.
+- `src-tauri/` — Rust/Tauri backend, transcription pipeline, packaging config and icons.
+- `src/` — React/TypeScript interface; `src/lib/model-catalog/` is the vendored model catalog
+  library (see its README for provenance and license).
+- `tests/` — Playwright smoke tests.
+- `.github/workflows/` — code quality, Rust tests, Playwright and the manual Windows ARM64 build.
+- `package.json` and `bun.lock` — Bun-managed frontend dependencies.
+- `LICENSE` — MIT license with Handy's original copyright notice; keep it.
 
 ## Working agreement
 
-- The final upstream import is `73c095857bc4eadff097f64767c40ad129cc372d`; custom dictation behavior is ported
-  to its supervised worker API. The `upstream` remote is removed at Akshat's request; future
-  updates are manual. Preserve source provenance as `cjpais/Handy`. Publish only to Akshat's
-  GitHub repository, which is public by his choice; review every push as public content.
-- Preserve upstream Git history, copyright notices, attribution, and the MIT license.
-- Keep implemented, locally verified, and merely documented behavior distinct. Do not claim mobile
-  support; the accepted production base is the cross-platform desktop application.
-- English only is the active Voice Workspace scope. Keep translation, Roman Hinglish and AI
-  cleanup off in its test profile; preserve dormant converter/data for recovery, not a Hindi readiness claim.
-- The initial Windows acceptance gate requires dependency installation, a successful source build,
-  and a launched local process that remains alive long enough to initialize its runtime. A live
-  microphone-to-text test still requires Akshat's interactive permission and speech input.
-- Keep the archived WhimprFlow repository as a recoverable historical reference; Handy is the
-  active desktop base.
-- Follow the workspace material-change documentation gate: synchronize affected current-state
-  sources, including `README.md`, `BUILD.md`, applicable release/configuration documents, and this
-  status whenever code, architecture, platforms, build/release behavior, privacy, or integrations
-  change.
-- Whenever a new project-owned working file or top-level source area is added, add a bullet under
-  `## Files` in the same edit. Generated, dependency, cache, and build-output directories do not
-  need individual entries.
+- Follow the workspace and `personal-project` CLAUDE chain. Publish only to Akshat's public
+  `akshatksingh18/voice-workspace-desktop` repository; review every push as public content.
+- Keep the MIT license, the original copyright notice and the Handy credit in README and the
+  About page. Do not reintroduce Handy's name, logo or brand assets as this app's branding.
+- No upstream remote and no automatic upstream sync. Pulling a later Handy change is a manual,
+  reviewed port. Library pins (`transcribe-cpp`, `handy-recorder`, the `cjpais` git pins) change
+  only on purpose; `development.md` lists them.
+- The portable marker text stays `Handy Portable Mode` so existing portable `Data/` folders keep
+  loading; do not change it without a migration.
+- Full builds and test suites run on GitHub Actions; locally run only quick targeted checks.
+- English only is the active scope. Translation, Roman Hinglish and AI cleanup stay off in the
+  test profile; keep the dormant converter for recovery, not as a Hindi readiness claim.
+- Keep implemented, CI-verified and live-tested behavior distinct. A live microphone/paste test
+  needs Akshat's speech; record aggregate results in the Voice Workspace documents.
+- Whenever a new project-owned working file or top-level source area is added, add it under
+  `## Files` in the same edit. Synchronize README, BUILD, development and setup documents when
+  code, build, privacy or platform behavior changes.

@@ -1,149 +1,85 @@
-# Voice Workspace dictation changes
+# Voice Workspace dictation features
 
-These changes are maintained in Akshat's public Handy fork. The integrated notes/meeting
-application is still planned; no restricted Granola/Natively code is used here.
+This project's own dictation behavior on top of the code inherited from Handy. Test results and
+timings belong in `../voice-workspace/performance.md` and `../voice-workspace/setup.md`; this file
+says what is implemented and how it was checked. The integrated notes/meeting app is still planned;
+no restricted Granola/Natively code is used here.
+
+## Active profile
+
+English only, Parakeet Unified EN 0.6B Q8. English is selected explicitly; Roman Hinglish,
+translation and AI cleanup are off. The Hindi/Hinglish requirement is superseded; the converter
+stays dormant for recovery, and its synthetic tests never proved acoustic or meaning accuracy.
 
 ## Implemented behavior
 
-The active Voice Workspace profile is **English only**, with Parakeet Unified EN Q8/NVIDIA as
-the test candidate. English is selected explicitly; Roman Hinglish, translation and AI cleanup
-are off. The user's updated Turbo live test still took 3–4 seconds and Hindi was delivered in
-English, so the earlier Hindi/Hinglish requirement is superseded. The converter below remains
-dormant/recoverable; its synthetic script tests were not a successful acoustic/meaning test.
+- **Settings (General → Voice Workspace):** _Use full-recording recognition_, _Hindi in Roman
+  Hinglish_ and _Warm model on startup_, all off by default. The test profile turns on
+  full-recording mode and warm-up, not Roman conversion.
+- **Full-recording mode** (`prefer_batch_transcription`) recognizes the whole recording after
+  release, with offline VAD and no live preview. It suppresses live streaming and upstream's
+  long-form live chunking (`policy.rs`, unit-tested over every model/setting combination). Restart
+  after changing it so warm-up primes the chosen path.
+- **Startup warm-up** (`preload_model`) loads the selected model and runs one second of discarded
+  silence through the batch or stream path before reporting loading complete. It never opens the
+  microphone or stores the result. INFO logs `dictation_warmup_ms`.
+- **Idle re-warm:** a dictation that starts after 15 s without use (warm-up on) repeats that
+  warm-up in a background thread while the user speaks. It queues on the engine like any other
+  run, so a release during it waits rather than fails; a failure only costs the speed it would
+  have saved. INFO logs `dictation_rewarm_ms` and `idle_s`, no content. Live result on the
+  previous engine: first dictation after 26.8 min idle 0.743 s (was 3.192 s).
+- **Early phrase recognition** (opt-in `early_chunk_recognition`, no UI toggle; needs
+  full-recording mode, VAD on and Model Unload not _Immediately_): a third live decoder beside
+  upstream's stream and long-form chunk decoders (`transcription/phrases.rs`). The recorder passes
+  only frames its VAD keeps, so frames stopping for 200 ms (after the 450 ms VAD hangover) mark a
+  pause. Once at least 3 s is undecoded, that phrase is recognized while the key is still held;
+  release decodes only the rest. Phrases join like long-form chunks. If the frames seen differ
+  from the recording, or a phrase fails, the whole recording is transcribed instead; Escape
+  cancels like the other live decoders (a phrase decoding at that moment is stopped by restarting
+  the engine worker, so the next dictation reloads the model). INFO logs `early_chunks` counts and
+  audio/decode milliseconds, no content. Possible side effect: a cut mid-sentence can add a period.
+- **Custom Words** stay post-ASR fuzzy matching on Parakeet. A prefix fix keeps ordinary preceding
+  words when a better suffix match exists ("a post-Gree SQL" → "a PostgreSQL"). The test profile
+  seeds PostgreSQL, Kubernetes and REST API at threshold 0.18; this is manual, not learning.
+- **Roman Hinglish (dormant):** local Hindi-script conversion before and after optional cleanup,
+  fail-closed on unsupported symbols, never combined with translation. History shows delivery
+  text; _Show raw recognition (recovery only)_ reveals the preserved ASR.
+- **Diagnostics:** release INFO logs `dictation_latency` (capture, recognition, output, paste and
+  stop-to-paste ms), never transcript text. Headless `--stats-only --json` omits text;
+  `--list-devices --json` gives stable device selectors. `src-tauri/examples/asr_latency.rs` is a
+  content-free native benchmark (batch or paced streaming, optional local gold/vocabulary scoring);
+  it does not cover the GUI, microphone, VAD, history or paste.
 
-- General Settings → Voice Workspace exposes **Use full-recording recognition**, **Hindi in Roman
-  Hinglish** and **Warm model on startup**. All default off for existing upstream users. The
-  isolated English quality profile enables full-recording mode and warm-up, not Roman conversion.
-  No new inference dependency or server is required. Full-recording mode bypasses the streaming
-  worker, uses offline VAD and recognizes the whole clip after release; no live partial preview.
-  Restart after changing mode to prime the chosen path. Long clips may cost more after release.
-- Manual Custom Words remain post-ASR fuzzy matching on this Parakeet path. A prefix-preservation
-  fix leaves ordinary preceding words intact when a better suffix match exists for the same term
-  (for example, "a post-Gree SQL" → "a PostgreSQL"). It does not delete the article, guess grammar
-  or add list commas. The quality profile seeds PostgreSQL/Kubernetes/REST API at threshold 0.18;
-  this is manual configuration, not automatic learning or an acoustic prompt.
-- Hindi script is converted locally before optional cleanup and validated/converted again after
-  cleanup. Already-English text is copied verbatim. This is not English translation or an ASR
-  correction model. Common chat spellings and exact technical loanwords have a small explicit
-  dictionary; unknown words use conservative letter transliteration and can sound unnatural.
-- Translation to English cannot be enabled with Roman Hinglish. Unsupported Hindi-script symbols
-  produce an error instead of a silent Devanagari paste. The original recording/raw recognition
-  remains local for retry/recovery under the existing retention policy.
-- History displays/copies delivery text by default. When Roman mode is explicitly enabled,
-  old/error Hindi entries require retry; an
-  explicit **Show raw recognition (recovery only)** reveals the preserved ASR instead.
-- Startup preload loads the selected downloaded speech model asynchronously and primes native
-  batch or streaming inference according to its runtime capabilities and the full-recording preference
-  with discarded synthetic silence before reporting loading complete. It does not open
-  the microphone, deliver/store the synthetic result or fetch models. Model Unload → Never avoids repeated idle model loads; it
-  consumes RAM/VRAM and is appropriate only for this measured test profile. Startup itself takes
-  longer; wait for loading to finish. Warm-up failures are logged and can leave first-run latency.
-- **Idle re-warm (branch `arm64-rewarm` only, not yet on local `main`):** when a dictation starts
-  after 15 s without use and warm-up is enabled, the same discarded one-second warm-up runs in the
-  background while the user speaks (batch/full-recording path only). It holds the engine lock, so a
-  release during warm-up waits instead of failing, and uses `try_lock` so it never waits behind a
-  load or transcription. INFO logs `dictation_rewarm_ms` and `idle_s`, no content. Built from GitHub
-  `main` (the deployed ARM64 source). Akshat's retest confirmed it removes the slow first dictation
-  after idle. It must be ported to the supervised worker before the upstream `73c09585` import is
-  adopted. `cargo fmt`/Clippy were not run for that deployment.
-- **Early-chunk recognition (branch `arm64-rewarm` only, opt-in `early_chunk_recognition`, no UI
-  toggle):** in full-recording mode with VAD on, a worker fed by the stream router recognizes each
-  finished phrase while the key is still held. A phrase counts as finished when no frame arrives
-  for 200 ms (VAD already drops pauses, after its 450 ms hangover) and it holds at least 3 s of audio.
-  On release only the audio after the last pause is decoded; results are joined with spaces. Each
-  phrase uses the normal `transcribe()` pipeline, so finalize skips a second post-processing pass.
-  Any failure falls back to transcribing the whole recording. INFO logs `early_chunks` counts and
-  audio/decode milliseconds, no content. Limits: a cut mid-sentence can add a period; a cancel
-  during a phrase decode followed at once by a new dictation can still collide with the engine.
-- Release INFO logs contain `dictation_latency` with capture, recognition, output, paste and
-  stop-to-paste milliseconds, never transcript content in that new metric. Keep debug mode off.
-- Headless `--stats-only --json` omits transcript text; `--list-devices --json` exposes stable GPU
-  selectors. File transcription also honors Roman Hinglish. No mic, paste, history entry or LLM
-  call is made by that headless benchmark path.
-- `src-tauri/examples/asr_latency.rs` is a standalone, content-free native diagnostic: explicit
-  device name/index, batch or real-time-paced streaming, optional local gold-text/vocabulary scoring. It uses
-  cached native dependencies, prints actual bound device and aggregate timings/errors, never raw
-  recognized text. It reports raw comma/end-punctuation presence and separate post-ASR vocabulary
-  timing/errors. It does not benchmark the complete GUI, mic, VAD, history, clipboard or paste.
+## Verification
 
-The fork-specific experimental labels have explicit English fallbacks in every locale catalog;
-existing translated strings are preserved. This does not claim translated support for that profile.
+At commit `a61d1b18` (the feature port) the full Rust suite passed
+([run 40485230453](https://github.com/akshatksingh18/voice-workspace-desktop/actions/runs/40485230453))
+and the Windows ARM64 release build with its CPU-only device check passed
+([run 40485233651](https://github.com/akshatksingh18/voice-workspace-desktop/actions/runs/40485233651)).
+The standalone makeover then passed Rust tests, code quality (lint, format, model-language
+coverage, keyboard and history-delivery tests, production build) and Playwright; exact runs and
+the deployed exe are in `windows-local-setup.md`. Re-warm and early phrases are covered by the
+policy unit tests and compile checks only; their behavior on this engine is not yet live-tested.
 
-## Verification and limitations
-
-The current source imports upstream `73c09585` and ports this profile to its supervised inference
-worker and asynchronous history jobs. Full-recording mode also suppresses the new live-chunk route;
-conversion failures propagate through history jobs, and history still displays/copies delivery text.
-The new policy/converter/history checks pass locally. Full frontend/quality checks and the
-Windows ARM64 source build pass, and the repaired full Rust suite passes. `windows-local-setup.md`
-owns the exact revisions and runs. The build/live acceptance below belongs to the previously
-deployed binary, which has not been replaced.
-
-Eight native converter tests cover mixed text, H01–H07 synthetic fixtures, English identifiers,
-negation/numbers, conjunct/nukta/digits, exact loanwords, fail-closed symbols and idempotence.
-Six history delivery regression checks, TypeScript, frontend build and changed-file ESLint pass.
-The updated Tauri Windows release build, real NVIDIA/Turbo inference and script delivery checks
-pass, as do timing-only output suppression and GUI startup/priming/settings persistence.
-See setup/performance for the deployed executable hash and individual timings.
-The English optimization also passes the TypeScript/frontend/native Tauri release build, local
-ESLint, standalone scoring regression and retained eight converter regressions. The new runtime
-loads/primes streaming-capable Parakeet on the persisted NVIDIA selector and passes timing-only
-headless inference. First-run and vocabulary accuracy limits remain recorded in performance.md.
-The converter microbenchmark averages about 5 microseconds on this laptop for the short synthetic
-fixture; this is not a recognition or insertion measurement.
-
-The original CPU profile failed Akshat's interactive acceptance: text appeared in Notepad, but
-Hindi used Devanagari, a technical acronym was misheard, and release-to-text exceeded 10 seconds.
-Aggregate device/model measurements and current activation decisions belong in
-`../voice-workspace/performance.md` and `../voice-workspace/setup.md`.
-The updated Turbo live test failed latency/Hindi acceptance. Akshat accepts the selected
-Parakeet streaming profile's live English speed, but the subsequent E03 microphone test failed
-PostgreSQL spelling and punctuation. Same-recording offline Parakeet batch retained critical
-terms and a terminal period in 0.378–0.439 s; no natural list commas and one lexical error remained.
-Turbo got the fixture punctuation/words but took 3.220–3.358 s. Akshat reports the deployed quality
-profile's live technical words/punctuation worked perfectly, cleanup off. That qualitative retest
-does not establish all fixtures, repetitions or exact/p95 latency. All 48 standalone
-diagnostic/text-filter tests pass, including dictionary prefix
-regressions; this is not the full application test suite. The full-recording update passes TypeScript,
-changed-interface ESLint/Prettier, frontend production build and offline Tauri Windows release build.
-The updated isolated app passes transcript-free headless inference; runtime libraries match and
-rollback/profile/history are preserved. Rustfmt/Clippy are not installed and those checks did not
-run; no whole-application test-suite pass is claimed. The earlier speed report is qualitative
-user acceptance, not a measured new latency/p95 or a completed insertion/reliability suite.
-Nothing here claims guaranteed instant dictation, maximum English accuracy, Hindi readiness,
-auto-learning, meeting integration,
-cross-platform device verification or signed packaging.
+Earlier evidence still applies to unchanged behavior: eight converter tests, six history-delivery
+checks and 48 diagnostic/text-filter regressions pass. Akshat accepted the Parakeet profile's live
+English speed and reported the full-recording/three-term retest's technical words and punctuation
+correct (one fixture, cleanup off). On the Snapdragon laptop, list/clause commas and sentence
+breaks inside one hold remain weak. Nothing here claims guaranteed instant dictation, complete
+accuracy, Hindi readiness, automatic learning, meeting integration, macOS/Linux verification or
+signed packaging.
 
 ## Spoken correction boundary
 
-The active quality profile has AI cleanup off and three manual Custom Words. Advanced Settings → Custom Words
-supports manual vocabulary; this Parakeet path applies fuzzy post-ASR matching, not acoustic
-prompting or automatic learning. The live quality retest's punctuation passed by user report,
-but broader punctuation/contextual grammar are not guaranteed by the dictionary or that one result.
-Optional LLM post-processing exists, but its default prompt
-does not explicitly resolve spoken backtracking and it is not configured for this profile.
-
-There is no dedicated rule that turns "Let's meet at 7 pm. Sorry, let's meet at 6 pm." into one
-corrected sentence. The current pipeline finalizes ASR, handles output/history, then pastes once;
-streaming text does not continuously overwrite the external editor. The proposed first slice is
-same-recording correction before paste, with raw recovery, conservative matching and latency tests.
-Editing a previous insertion is a separate target-validated mode, not blind deletion or monitoring
-of unrelated typing. Requirements/design/fixtures belong in the sibling Voice Workspace documents.
-
-OpenWhispr's pinned prompt/cleanup failure fallback is a workflow reference for punctuation,
-technical spelling and explicit backtracking. No external prompt/code was copied, no cleanup
-model/server is configured in Handy. Akshat approved a separate small local text-model/Windows
-runtime comparison from official GitHub/Hugging Face, not uploads or default activation.
-Latency/meaning validation is required. Do not enable cloud cleanup or hardcode fixture output.
-The separate Qwen3-0.6B Q8 experiment failed time-repair/clause-preservation checks, so no local
-processor was activated in Handy. Its runner/downloads/results remain in Voice Workspace, not
-this application's dependencies or a bundled model.
+There is no rule that turns "Let's meet at 7 pm. Sorry, let's meet at 6 pm." into one corrected
+sentence. The pipeline finalizes ASR, handles output/history, then pastes once. The proposed first
+slice is same-recording correction before paste, with raw recovery and latency tests; editing a
+previous insertion is a separate target-validated mode. Optional LLM cleanup exists but is not
+configured; the separate local Qwen3-0.6B experiment failed time-repair and clause checks, so no
+local processor is enabled. Design and fixtures live in the Voice Workspace documents.
 
 ## Maintenance
 
-Converter source: `src-tauri/src/audio_toolkit/hinglish.rs`. Keep fixtures synthetic; add spelling
-preferences only as explicit exact entries, not fuzzy substitutions that could change meaning.
-The dormant delivery stage is independent of cleanup. Do not re-enable it for English-only work.
-If later explicitly enabled, do not silently replace a failed conversion with
-raw script, translate Hindi, infer missing spoken words, or enable a cloud processor.
-Model downloads and model redistribution are separate authorization/license decisions.
+Converter source: `src-tauri/src/audio_toolkit/hinglish.rs`. Keep fixtures synthetic and add
+spellings only as exact entries. Do not re-enable it for English-only work, translate Hindi, or
+enable a cloud processor. Model downloads and redistribution are separate license decisions.
