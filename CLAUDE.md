@@ -15,8 +15,8 @@ full Rust checks pass at `9ddfa264`; the Windows ARM64 build uses formatter-equi
 source. `windows-local-setup.md` owns the exact revisions, run links and verification limits.
 
 The deployed ARM64 runtime stays on the separate `arm64-rewarm` branch, whose live retest removed
-the slow first dictation after idle. That accepted behavior is not yet ported to the imported
-worker architecture. No installed executable, model, profile or user history was replaced.
+the slow first dictation after idle; it also carries opt-in early-chunk recognition, deployed there
+and awaiting a live test. Neither is yet ported to the imported worker architecture. No installed executable, model, profile or user history was replaced.
 English only is active; Roman Hinglish and AI cleanup remain off. Detailed behavior and earlier
 live acceptance belong in `voice-workspace-features.md` and the owning Voice Workspace guides.
 Dedicated spoken self-correction remains proposed, not implemented.

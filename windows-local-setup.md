@@ -112,8 +112,9 @@ staged ARM64 VC++ runtime DLLs and `SHA256SUMS.txt`. On the Snapdragon X laptop 
 without an application-control block, binds the Oryon CPU and passed a live Notepad dictation test;
 Voice Workspace's `setup.md` and `performance.md` own those results. The workflow also builds
 branches: run 40412889343 built `arm64-rewarm` (commit `ff21566`, idle re-warm) in 13 min 18 s on
-a warm cache, `handy.exe` SHA-256 `abe07448…3e91`, DLLs unchanged; that exe is now deployed on the
-Snapdragon laptop. Pushing a non-`main` branch triggers no workflow. A push to `main` also triggers
+a warm cache, `handy.exe` SHA-256 `abe07448…3e91`, DLLs unchanged. Run 40419914181 built commit
+`9cb3884` (adds opt-in early-chunk recognition), `handy.exe` SHA-256 `e8d55637…de9d`, DLLs unchanged;
+that exe is now deployed on the Snapdragon laptop. Pushing a non-`main` branch triggers no workflow. A push to `main` also triggers
 `main-build.yml` (macOS, Linux and Windows builds); put `[skip ci]` in the commit message when
 pushing only workflow or documentation changes.
 
