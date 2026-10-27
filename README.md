@@ -39,8 +39,8 @@ nothing is packaged or run there, and macOS is not built.
 
 ## Build and run
 
-- **Windows ARM64 or x64:** run the `Windows ARM64 build` or `Windows x64
-build` workflow in GitHub Actions and download its artifact
+- **Windows ARM64 or x64:** run `windows-arm64-build.yml` or
+  `windows-x64-build.yml` in GitHub Actions and download its artifact
   (`voice-workspace.exe`, the DLLs it needs and `SHA256SUMS.txt`). Copy
   `src-tauri/resources` beside the exe as `resources/`.
 - **Other targets and development:** see [BUILD.md](BUILD.md) and
@@ -48,7 +48,8 @@ build` workflow in GitHub Actions and download its artifact
 - **Portable mode:** a file named `portable` next to the exe keeps settings,
   models, history and logs in a `Data` folder beside it.
 
-Pushes to `main` run code-quality checks, Rust tests and Playwright tests.
+Pushes to `main` run code-quality checks and Rust tests; Playwright runs on
+pull requests or by hand.
 
 ## Documentation
 
