@@ -26,7 +26,7 @@ use download::{
 /// for downloading and on-disk resolution.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum ModelSource {
-    /// Direct HTTP download from a URL (current blob.handy.computer hosting).
+    /// Direct HTTP download from a URL (pinned whisper.cpp files on Hugging Face).
     Url {
         url: String,
         /// Expected SHA-256 for integrity verification; `None` skips it.
@@ -104,9 +104,7 @@ fn canonicalize_supported_languages(languages: Vec<String>) -> Vec<String> {
     canonical
 }
 
-/// One downloadable quantization of a catalog model. (Its sha256, the trust
-/// anchor for mirror downloads, stays in the catalog: see
-/// `catalog::mirror_fallbacks`.)
+/// One downloadable quantization of a catalog model.
 #[derive(Debug, Clone)]
 pub struct QuantFile {
     pub filename: String,
@@ -860,7 +858,7 @@ impl ModelManager {
                 description: "Fast and fairly accurate.".to_string(),
                 filename: "ggml-small.bin".to_string(),
                 source: ModelSource::Url {
-                    url: "https://blob.handy.computer/ggml-small.bin".to_string(),
+                    url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-small.bin".to_string(),
                     sha256: Some(
                         "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
                             .to_string(),
@@ -884,36 +882,6 @@ impl ModelManager {
 
         // Add downloadable models
         available_models.insert(
-            "medium".to_string(),
-            ModelInfo {
-                id: "medium".to_string(),
-                name: "Whisper Medium".to_string(),
-                description: "Good accuracy, medium speed".to_string(),
-                filename: "whisper-medium-q4_1.bin".to_string(),
-                source: ModelSource::Url {
-                    url: "https://blob.handy.computer/whisper-medium-q4_1.bin".to_string(),
-                    sha256: Some(
-                        "79283fc1f9fe12ca3248543fbd54b73292164d8df5a16e095e2bceeaaabddf57"
-                            .to_string(),
-                    ),
-                },
-                size_mb: 469,
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                accuracy_score: 0.75,
-                speed_score: 0.60,
-                supports_translation: true,
-                is_recommended: false,
-                supported_languages: whisper_languages.clone(),
-                supports_language_selection: true,
-                is_custom: false,
-                supports_streaming: false,
-                supports_language_detection: true,
-            },
-        );
-
-        available_models.insert(
             "turbo".to_string(),
             ModelInfo {
                 id: "turbo".to_string(),
@@ -921,7 +889,7 @@ impl ModelManager {
                 description: "Balanced accuracy and speed.".to_string(),
                 filename: "ggml-large-v3-turbo.bin".to_string(),
                 source: ModelSource::Url {
-                    url: "https://blob.handy.computer/ggml-large-v3-turbo.bin".to_string(),
+                    url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-turbo.bin".to_string(),
                     sha256: Some(
                         "1fc70f774d38eb169993ac391eea357ef47c88757ef72ee5943879b7e8e2bc69"
                             .to_string(),
@@ -951,7 +919,7 @@ impl ModelManager {
                 description: "Good accuracy, but slow.".to_string(),
                 filename: "ggml-large-v3-q5_0.bin".to_string(),
                 source: ModelSource::Url {
-                    url: "https://blob.handy.computer/ggml-large-v3-q5_0.bin".to_string(),
+                    url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-large-v3-q5_0.bin".to_string(),
                     sha256: Some(
                         "d75795ecff3f83b5faa89d1900604ad8c780abd5739fae406de19f23ecd98ad1"
                             .to_string(),
@@ -964,37 +932,6 @@ impl ModelManager {
                 accuracy_score: 0.85,
                 speed_score: 0.30,
                 supports_translation: true,
-                is_recommended: false,
-                supported_languages: whisper_languages.clone(),
-                supports_language_selection: true,
-                is_custom: false,
-                supports_streaming: false,
-                supports_language_detection: true,
-            },
-        );
-
-        available_models.insert(
-            "breeze-asr".to_string(),
-            ModelInfo {
-                id: "breeze-asr".to_string(),
-                name: "Breeze ASR".to_string(),
-                description: "Optimized for Taiwanese Mandarin. Code-switching support."
-                    .to_string(),
-                filename: "breeze-asr-q5_k.bin".to_string(),
-                source: ModelSource::Url {
-                    url: "https://blob.handy.computer/breeze-asr-q5_k.bin".to_string(),
-                    sha256: Some(
-                        "8efbf0ce8a3f50fe332b7617da787fb81354b358c288b008d3bdef8359df64c6"
-                            .to_string(),
-                    ),
-                },
-                size_mb: 1030,
-                is_downloaded: false,
-                is_downloading: false,
-                partial_size: 0,
-                accuracy_score: 0.85,
-                speed_score: 0.35,
-                supports_translation: false,
                 is_recommended: false,
                 supported_languages: whisper_languages,
                 supports_language_selection: true,
@@ -1267,8 +1204,8 @@ impl ModelManager {
 
         for model in models.values_mut() {
             if let ModelSource::HuggingFace { repo_id, revision } = &model.source {
-                // A models-dir copy counts too: mirror-fallback downloads land
-                // there, and it makes manual drop-ins of catalog files work.
+                // A models-dir copy counts too: earlier builds' mirror downloads
+                // landed there, and it makes manual drop-ins of catalog files work.
                 let local_path = self.models_dir.join(&model.filename);
                 let partial_path = self.models_dir.join(format!("{}.partial", &model.filename));
                 model.is_downloaded = hf_cached_path(repo_id, revision, &model.filename).is_some()
@@ -1764,7 +1701,7 @@ impl ModelManager {
         let filename = model_info.filename.clone();
 
         // Already in the shared cache (possibly from another tool), or dropped
-        // into the models dir (mirror fallback / manual install)? Done.
+        // into the models dir (an earlier mirror download / manual install)? Done.
         if hf_cached_path(&repo_id, &revision, &filename).is_some()
             || self.models_dir.join(&filename).exists()
         {
@@ -1842,8 +1779,8 @@ impl ModelManager {
             let progress = HfDownloadProgress::new(self.app_handle.clone(), model_id.clone());
 
             // hf-hub has no internal timeouts, so a wedged connection would
-            // otherwise hang this attempt forever and neither the retry loop
-            // nor the mirror fallback would ever fire. The watchdog cancels a
+            // otherwise hang this attempt forever and the retry loop would
+            // never fire. The watchdog cancels a
             // per-attempt child token when progress goes stale; a user cancel
             // on the parent propagates through the same child. Each wake also
             // re-emits progress, so the reported rate decays through a lull.
@@ -1908,7 +1845,7 @@ impl ModelManager {
                     // the connection pool a brief pause, then retry once using
                     // the known-compatible single-stream path. A sequential
                     // stall already cost DOWNLOAD_STALL_TIMEOUT, so further
-                    // retries would likely just repeat it — use the mirror.
+                    // retries would likely just repeat it — report the failure.
                     if stream_count == 1 || attempt >= ATTEMPT_STREAMS.len() {
                         break Some(err);
                     }
@@ -1967,44 +1904,11 @@ impl ModelManager {
                 "HF download failed for {} after {} attempt(s): {:?}",
                 model_id, attempt, hf_error
             );
-            let mirrors = crate::catalog::mirror_fallbacks(&model_id);
-            if mirrors.is_empty() {
-                return Err(anyhow::anyhow!(
-                    "Hugging Face download failed after {} attempt(s): {}",
-                    attempt,
-                    hf_error
-                ));
-            }
-            let mut completed = false;
-            for mirror in &mirrors {
-                info!("Falling back to mirror for {}: {}", model_id, mirror.url);
-                match self
-                    .download_from_mirror(&model_id, &filename, mirror, cancel_token.clone())
-                    .await
-                {
-                    Ok(true) => {
-                        completed = true;
-                        break;
-                    }
-                    Ok(false) => {
-                        info!("Mirror download cancelled for: {}", model_id);
-                        return Ok(());
-                    }
-                    Err(e) => {
-                        warn!(
-                            "Mirror download failed for {} from {}: {:?}",
-                            model_id, mirror.url, e
-                        );
-                    }
-                }
-            }
-            if !completed {
-                return Err(anyhow::anyhow!(
-                    "Download failed from Hugging Face ({}) and {} mirror(s)",
-                    hf_error,
-                    mirrors.len()
-                ));
-            }
+            return Err(anyhow::anyhow!(
+                "Hugging Face download failed after {} attempt(s): {}",
+                attempt,
+                hf_error
+            ));
         }
 
         cleanup.disarmed = true;
@@ -2013,47 +1917,6 @@ impl ModelManager {
         let _ = self.app_handle.emit("model-download-complete", &model_id);
         info!("HF model {} downloaded", model_id);
         Ok(())
-    }
-
-    /// Direct-HTTP download of a catalog model's file from a mirror into the
-    /// models dir (HF-model resolution accepts that location too). Returns
-    /// `Ok(true)` on completion, `Ok(false)` if cancelled (partial kept).
-    async fn download_from_mirror(
-        &self,
-        model_id: &str,
-        filename: &str,
-        mirror: &crate::catalog::MirrorFile,
-        cancel_token: CancellationToken,
-    ) -> Result<bool> {
-        fs::create_dir_all(&self.models_dir)?;
-        let model_path = self.models_dir.join(filename);
-        let partial_path = self.models_dir.join(format!("{}.partial", filename));
-
-        if model_path.exists() {
-            return Ok(true);
-        }
-
-        match self
-            .download_http_resumable(
-                model_id,
-                &mirror.url,
-                &partial_path,
-                Some(mirror.size_bytes),
-                Some(&mirror.sha256),
-                &cancel_token,
-            )
-            .await?
-        {
-            HttpDownloadOutcome::Cancelled => Ok(false),
-            HttpDownloadOutcome::Completed => {
-                fs::rename(&partial_path, &model_path)?;
-                info!(
-                    "Mirror download of {} completed and verified ({:?})",
-                    model_id, model_path
-                );
-                Ok(true)
-            }
-        }
     }
 
     pub async fn download_model(&self, model_id: &str) -> Result<()> {
@@ -2186,7 +2049,7 @@ impl ModelManager {
             // removed before it stay removed, and the entry keeps reading as
             // downloaded while any copy remains.
             let mut deleted = Self::delete_hf_cache_file(repo_id, revision, &model_info.filename)?;
-            // Also remove a models-dir copy (mirror fallback / manual drop-in)
+            // Also remove a models-dir copy (earlier mirror download / manual drop-in)
             // and any resumable partial next to it.
             for path in [
                 self.models_dir.join(&model_info.filename),
@@ -2511,23 +2374,14 @@ mod tests {
         let mut registry = HashMap::new();
         ModelManager::seed_catalog_models(&mut registry);
         for retired in RETIRED_ONNX_MODELS {
-            let replacement = registry
-                .values()
-                .find(|info| {
+            assert!(
+                registry.values().any(|info| {
                     matches!(&info.source, ModelSource::HuggingFace { repo_id, .. }
                         if repo_id == retired.replacement_repo)
-                })
-                .unwrap_or_else(|| {
-                    panic!(
-                        "{}: replacement {} is not offered",
-                        retired.id, retired.replacement_repo
-                    )
-                });
-            assert!(
-                !crate::catalog::mirror_fallbacks(&replacement.id).is_empty(),
-                "{}: replacement {} has no mirror fallback",
+                }),
+                "{}: replacement {} is not offered",
                 retired.id,
-                replacement.id
+                retired.replacement_repo
             );
         }
     }

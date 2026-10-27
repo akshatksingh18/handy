@@ -1,7 +1,8 @@
-//! Tray menu internationalization
+//! Tray menu strings
 //!
 //! Everything is auto-generated at compile time by build.rs from the
-//! frontend locale files (src/i18n/locales/*/translation.json).
+//! frontend locale files (src/i18n/locales/*/translation.json). The app ships
+//! English only; any other locale folder added later is picked up the same way.
 //!
 //! The English translation.json is the single source of truth:
 //! - TrayStrings struct fields are derived from the English "tray" keys
@@ -9,8 +10,7 @@
 //!
 //! To add a new tray menu item:
 //! 1. Add the key to en/translation.json under "tray"
-//! 2. Add translations to other locale files
-//! 3. Update tray.rs to use the new field (e.g., strings.new_field)
+//! 2. Update tray.rs to use the new field (e.g., strings.new_field)
 
 use crate::chinese_script::chinese_script_for_locale;
 use crate::settings::ChineseScript;
@@ -52,24 +52,12 @@ mod tests {
     use super::{get_tray_translations, TRANSLATIONS};
 
     #[test]
-    fn resolves_locale_fallbacks() {
-        for (locale, expected) in [
-            ("zh-Hant-TW", "zh-TW"),
-            ("zh-Hant-HK", "zh-TW"),
-            ("zh-HK", "zh-TW"),
-            ("zh-MO", "zh-TW"),
-            ("ZH-TW", "zh-TW"),
-            ("zh_Hant_TW", "zh-TW"),
-            ("zh-Hans-CN", "zh"),
-            ("yue-Hant-HK", "zh-TW"),
-            ("yue-Hans-CN", "zh"),
-            ("fr-FR", "fr"),
-            ("xx-YY", "en"),
-        ] {
+    fn every_locale_falls_back_to_english() {
+        for locale in ["en-US", "zh-Hant-TW", "zh-Hans-CN", "fr-FR", "xx-YY"] {
             assert_eq!(
                 format!("{:?}", get_tray_translations(Some(locale.into()))),
-                format!("{:?}", TRANSLATIONS[expected]),
-                "{locale} should resolve to {expected}"
+                format!("{:?}", TRANSLATIONS["en"]),
+                "{locale} should resolve to English"
             );
         }
     }

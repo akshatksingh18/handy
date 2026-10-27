@@ -6,17 +6,17 @@ fn main() {
 
     // Linux ships transcribe-cpp as a shared libtranscribe + loadable ggml
     // backend modules (the `dynamic-backends` posture in Cargo.toml). Bake an
-    // $ORIGIN-relative rpath into the `handy` binary so it finds libtranscribe
-    // next to it in the package — deb/rpm install into the app-private
-    // `/usr/lib/Handy` (the dir tauri already uses for resources; keeps
-    // Handy's libs out of the ldconfig-scanned `/usr/lib`, issue #1639) while
+    // $ORIGIN-relative rpath into the `voice-workspace` binary so it finds
+    // libtranscribe next to it in the package — deb/rpm install into the
+    // app-private `/usr/lib/voice-workspace` (no space, so the rpath stays one
+    // path; keeps the libs out of the ldconfig-scanned `/usr/lib`) while
     // the AppImage keeps them in `usr/lib` (linuxdeploy's layout), hence both
     // entries. transcribe's
     // init_backends_default() then loads the ggml modules co-located there.
     // (Windows resolves DLLs from the exe directory, so it needs no rpath;
     // macOS links transcribe-cpp statically via the `metal` feature.)
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("linux") {
-        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../lib/Handy:$ORIGIN/../lib");
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../lib/voice-workspace:$ORIGIN/../lib");
     }
 
     // CPAL (handy-recorder's and rodio's) links two CoreAudio functions that
@@ -145,8 +145,8 @@ fn stage_vc_runtime_dlls() {
 /// this is a no-op there. `RUNTIME_DIR` (core libs) and `MODULE_DIR` (dlopen'd
 /// ggml modules) may be the same dir — the `BTreeSet` below dedups them.
 ///
-/// Where the staged dir lands: Windows bundles it beside `handy.exe` (DLLs resolve
-/// from the exe dir); Linux deb/rpm map it into the app-private `/usr/lib/Handy`
+/// Where the staged dir lands: Windows bundles it beside `voice-workspace.exe` (DLLs
+/// resolve from the exe dir); Linux deb/rpm map it into the app-private `/usr/lib/voice-workspace`
 /// and the AppImage into `usr/lib`, both on the binary's rpath.
 fn stage_transcribe_runtime_libs() {
     use std::collections::BTreeSet;

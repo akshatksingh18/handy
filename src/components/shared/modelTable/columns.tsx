@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { CatalogModel } from "@handy-computer/models";
+import type { CatalogModel } from "@/lib/model-catalog";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { GradeChip } from "@/components/shared/GradeChip";
 import { SpeedBars, speedLevel } from "@/components/shared/SpeedBars";

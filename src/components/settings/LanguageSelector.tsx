@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SettingContainer } from "../ui/SettingContainer";
 import { ResetButton } from "../ui/ResetButton";
 import { useSettings } from "../../hooks/useSettings";
-import { languageIdentity } from "@handy-computer/models";
+import { languageIdentity } from "@/lib/model-catalog";
 import {
   LANGUAGES,
   languageName,

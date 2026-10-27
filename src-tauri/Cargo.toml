@@ -1,11 +1,11 @@
 [package]
-name = "handy"
+name = "voice-workspace"
 version = "0.9.8"
-description = "Handy"
-authors = ["cjpais"]
+description = "Voice Workspace: local desktop dictation"
+authors = ["Akshat Kumar Singh"]
 edition = "2021"
 license = "MIT"
-default-run = "handy"
+default-run = "voice-workspace"
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.
@@ -100,7 +100,6 @@ signal-hook = "0.3"
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-global-shortcut = "2.3.1"
 tauri-plugin-single-instance = "2.3.2"
-tauri-plugin-updater = "2.10.1"
 
 [target.'cfg(windows)'.dependencies]
 # Used to reach ICoreWebView2Settings3 through the webview's controller

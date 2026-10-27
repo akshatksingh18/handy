@@ -1,14 +1,15 @@
 //! The bundled, offline model catalog.
 //!
-//! `catalog.json` is a verbatim copy of the `@handy-computer/models` package's
-//! catalog (the version pinned in `package.json`; `bun run check:catalog`
-//! keeps the two identical). It lists every model transcribe.cpp publishes,
-//! with pinned revisions, per-quant hashes and benchmark results, and marks
-//! the curated subset. It is compiled into the binary so Handy ships a
-//! complete model list with zero network access.
+//! `catalog.json` is this app's model catalog, first taken from version 0.2.2
+//! of the MIT-licensed `@handy-computer/models` package and now maintained
+//! here. The frontend reads the same file through `src/lib/model-catalog/`.
+//! It lists every model transcribe.cpp publishes, with pinned Hugging Face
+//! revisions, per-quant sizes and benchmark results, and marks the curated
+//! subset. It is compiled into the binary so the app ships a complete model
+//! list with zero network access.
 //!
-//! Every supported transcription model is offered for download and mirrored
-//! at the package's default quant, independently of recommendation ranking.
+//! Every supported transcription model is offered for download from Hugging
+//! Face at its default quant, independently of recommendation ranking.
 //!
 //! Each entry is normalised into a [`ModelDescriptor`] — the same source-agnostic
 //! shape every other producer (HF discovery, on-disk scans, the legacy table)
@@ -28,12 +29,6 @@ use crate::managers::model_capabilities::{CapabilityProbe, Compatibility};
 /// Catalog schema this loader understands. The package bumps it on any
 /// breaking change; additive fields are ignored.
 const SCHEMA: u32 = 2;
-
-/// Base URLs tried in order when the Hugging Face download fails. The full
-/// file URL is `{mirror}/{repo_id}/{revision}/{filename}` — the same three
-/// values that form the HF resolve URL, so a mirror is a plain static host.
-/// `scripts/mirror_models.py` populates it from this catalog.
-const MIRRORS: &[&str] = &["https://blob.handy.computer"];
 
 /// Handy's list order and onboarding set, keyed by catalog id. Kept from the
 /// previous generator until onboarding moves to the package's recommendations.
@@ -77,8 +72,7 @@ struct CatalogModel {
     description: String,
     /// HF repo id, e.g. `handy-computer/whisper-small-gguf`.
     repository: String,
-    /// Commit the files and hashes are pinned to. Both HF acquisition and
-    /// mirror keys use it, so downloaded bytes provably match the hashes.
+    /// Commit the files are pinned to; HF acquisition downloads that revision.
     revision: String,
     /// The loader architecture (`general.architecture`).
     family: String,
@@ -109,7 +103,6 @@ struct CatalogCaps {
 struct CatalogFile {
     filename: String,
     size: u64,
-    sha256: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -138,9 +131,8 @@ impl CatalogModel {
         self.files.get(&self.quant)
     }
 
-    /// Handy uses a flat models directory for mirror downloads, so only
-    /// transcription models with root-level default files can be offered.
-    /// Must match `offered_models` in `scripts/mirror_models.py`.
+    /// Only transcription models with root-level default files are offered:
+    /// models downloaded by earlier builds sit in a flat models directory.
     fn is_offered(&self) -> bool {
         self.role == "asr"
             && self
@@ -298,8 +290,7 @@ impl From<&CatalogModel> for ModelDescriptor {
 }
 
 /// The raw parsed catalog. Kept alive (not consumed) so data that deliberately
-/// stays out of [`ModelDescriptor`] (mirrors, results) can
-/// be looked up separately.
+/// stays out of [`ModelDescriptor`] (results) can be looked up separately.
 static ROOT: Lazy<CatalogRoot> = Lazy::new(|| {
     let root: CatalogRoot = serde_json::from_str(include_str!("catalog.json"))
         .expect("bundled catalog.json is valid JSON matching the catalog schema");
@@ -336,49 +327,6 @@ pub static CATALOG: Lazy<Vec<ModelDescriptor>> = Lazy::new(|| {
         .map(ModelDescriptor::from)
         .collect()
 });
-
-/// A mirror copy of a catalog model's file, with the expected content hash for
-/// end-to-end verification. Mirrors are untrusted bit-pipes: the sha256 here
-/// (from the catalog compiled into the binary) is the trust anchor.
-pub struct MirrorFile {
-    pub url: String,
-    pub sha256: String,
-    /// Catalog size — drives progress totals and resume sanity checks.
-    pub size_bytes: u64,
-}
-
-/// Ordered mirror URLs for an offered catalog model's file — any listed quant,
-/// not just the default — or empty when the model isn't offered from the
-/// catalog. `model_id` is the registry id (`"{repo_id}/{filename}"`). (The
-/// mirror only hosts default quants; a miss there just 404s and the caller
-/// reports it, so listing every quant here costs nothing.)
-pub fn mirror_fallbacks(model_id: &str) -> Vec<MirrorFile> {
-    let Some((m, file)) = transcription_models()
-        .filter(|m| m.is_offered())
-        .find_map(|m| {
-            m.files
-                .values()
-                .find(|f| format!("{}/{}", m.repository, f.filename) == model_id)
-                .map(|f| (m, f))
-        })
-    else {
-        return Vec::new();
-    };
-    MIRRORS
-        .iter()
-        .map(|base| MirrorFile {
-            url: format!(
-                "{}/{}/{}/{}",
-                base.trim_end_matches('/'),
-                m.repository,
-                m.revision,
-                file.filename
-            ),
-            sha256: file.sha256.clone(),
-            size_bytes: file.size,
-        })
-        .collect()
-}
 
 /// The catalog descriptor + specific `files[]` entry owning `filename`,
 /// matched across every listed quant (not just the default) of every offered
@@ -494,21 +442,6 @@ mod tests {
             CATALOG.iter().filter(|d| d.recommended).count(),
             HANDY_RANKING.iter().filter(|(_, _, r)| *r).count()
         );
-    }
-
-    #[test]
-    fn every_offered_model_has_mirror_fallbacks_with_hashes() {
-        // The mirror fallback is the safety net for HF outages and blocked
-        // networks; an offered entry without one silently loses that net.
-        for d in CATALOG.iter() {
-            let mirrors = mirror_fallbacks(&d.id);
-            assert!(!mirrors.is_empty(), "{}: no mirror fallbacks", d.id);
-            for m in &mirrors {
-                assert_eq!(m.sha256.len(), 64, "{}: mirror entry lacks a sha256", d.id);
-                assert!(m.size_bytes > 0, "{}: mirror entry lacks a size", d.id);
-                assert!(m.url.starts_with("https://"), "{}: bad url {}", d.id, m.url);
-            }
-        }
     }
 
     #[test]

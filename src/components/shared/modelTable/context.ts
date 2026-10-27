@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { CatalogModel } from "@handy-computer/models";
+import type { CatalogModel } from "@/lib/model-catalog";
 import type { Grading } from "@/lib/models/grading";
 
 /** Curated (onboarding offers it), catalog (untested), custom or legacy. */

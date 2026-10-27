@@ -1,8 +1,8 @@
 name: "Windows ARM64 build"
 
-# Manual, unsigned build of the CPU-only Windows ARM64 handy.exe for the Voice Workspace test
-# runtime. No secrets, no signing, no release upload, read-only token. It reuses the same ARM64
-# compiler settings as build.yml (clang-cl + Ninja, static CPU backend) but skips the installers.
+# Manual, unsigned build of the CPU-only Windows ARM64 voice-workspace.exe for the Voice Workspace
+# test runtime. No secrets, no signing, no release upload, read-only token. clang-cl + Ninja with a
+# static CPU backend; the installers are skipped.
 on: workflow_dispatch
 
 permissions:
@@ -43,8 +43,8 @@ jobs:
           key: windows-11-arm-${{ env.TARGET }}-no-bundle-v1
           cache-bin: false
 
-      # ggml's ARM CPU backend refuses MSVC, so build with clang-cl through Ninja. These values and
-      # the two TRANSCRIBE_CMAKE_ARGS overrides mirror the "Windows ARM64" step in build.yml.
+      # ggml's ARM CPU backend refuses MSVC, so build with clang-cl through Ninja, with a portable
+      # (non-native) CPU backend and no OpenMP.
       - name: Configure clang-cl for ARM64
         shell: pwsh
         run: |
@@ -90,15 +90,15 @@ jobs:
         run: bun install --cpu=arm64 --frozen-lockfile
 
       # --no-bundle compiles the release exe with the embedded production frontend and skips the
-      # NSIS/MSI installers, so no signing command or updater key is involved.
-      - name: Build handy.exe
+      # NSIS/MSI installers.
+      - name: Build voice-workspace.exe
         run: bun x tauri build --target ${{ env.TARGET }} --no-bundle --ci
 
       - name: Stage and check
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $exe = "src-tauri/target/$env:TARGET/release/handy.exe"
+          $exe = "src-tauri/target/$env:TARGET/release/voice-workspace.exe"
           if (-not (Test-Path $exe)) { throw "$exe was not produced" }
           $dlls = Get-ChildItem "src-tauri/transcribe-libs" -Filter "*.dll" -ErrorAction SilentlyContinue
           foreach ($name in "msvcp140.dll", "vcruntime140.dll") {
@@ -108,10 +108,10 @@ jobs:
           Copy-Item $exe stage/
           Copy-Item $dlls.FullName stage/
 
-          # Same device check as the installer audit in build.yml: CPU only, no GPU backend.
-          $devices = (& "stage/handy.exe" --list-devices | Out-String)
+          # CPU only, no GPU backend.
+          $devices = (& "stage/voice-workspace.exe" --list-devices | Out-String)
           $devices | Write-Host
-          if ($LASTEXITCODE -ne 0) { throw "handy.exe --list-devices failed" }
+          if ($LASTEXITCODE -ne 0) { throw "voice-workspace.exe --list-devices failed" }
           if ($devices -match "kind=(vulkan|cuda|metal|gpu)") { throw "ARM64 build unexpectedly exposed a GPU device" }
           if ($devices -notmatch "kind=cpu") { throw "ARM64 build did not expose its CPU device" }
 
@@ -122,7 +122,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: handy-windows-arm64-${{ github.sha }}
+          name: voice-workspace-windows-arm64-${{ github.sha }}
           path: stage/*
           if-no-files-found: error
           retention-days: 7

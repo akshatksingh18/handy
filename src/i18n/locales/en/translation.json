@@ -1,7 +1,7 @@
 {
+  "appName": "Voice Workspace",
   "tray": {
     "settings": "Settings...",
-    "checkUpdates": "Check for Updates...",
     "copyLastTranscript": "Copy Last Transcript",
     "unloadModel": "Unload Model",
     "model": "Model",
@@ -22,7 +22,7 @@
     "customModelDescription": "Not officially supported",
     "migration": {
       "title": "Your models need an update",
-      "description": "Handy now uses a newer kind of model. Download the new version to keep transcribing. Old versions will be removed.",
+      "description": "Voice Workspace now uses a newer kind of model. Download the new version to keep transcribing. Old versions will be removed.",
       "replaces": "Replaces {{name}}",
       "oldFormat": "Old format",
       "failed": "Download failed",
@@ -59,11 +59,11 @@
     "permissions": {
       "microphone": {
         "name": "Microphone",
-        "why": "So Handy can hear you. Audio is turned into text on this computer and never uploaded."
+        "why": "So Voice Workspace can hear you. Audio is turned into text on this computer and never uploaded."
       },
       "accessibility": {
         "name": "Accessibility",
-        "why": "So your shortcut works in every app, and Handy can type the text where your cursor is."
+        "why": "So your shortcut works in every app, and Voice Workspace can type the text where your cursor is."
       },
       "errors": {
         "checkFailed": "Failed to check permissions. Please try again.",
@@ -77,12 +77,12 @@
       "openSettings": "Open settings",
       "allowed": "Allowed",
       "waiting": "Waiting",
-      "turnOnMac": "Turn on Handy in System Settings, then come back here.",
+      "turnOnMac": "Turn on Voice Workspace in System Settings, then come back here.",
       "turnOnWindows": "Turn on microphone access in Windows Settings, then come back here.",
       "hintBoth": "Allow both to continue",
       "hintMicrophone": "Allow the microphone to continue",
       "welcomeBack": "Welcome back. Picking up where you left off.",
-      "relaunch": "Shortcut not responding after this? <relaunch>Relaunch Handy</relaunch> and you'll land right back here."
+      "relaunch": "Shortcut not responding after this? <relaunch>Relaunch Voice Workspace</relaunch> and you'll land right back here."
     },
     "shell": {
       "back": "Back",
@@ -93,11 +93,10 @@
       "title": "Speak instead of typing, in any app",
       "subtitle": "Pick the languages you will dictate in",
       "languagesLabel": "Languages",
-      "noMatch": "No language matches “{{query}}”. Handy's models cover about 100 languages; more are in settings.",
-      "appLanguage": "App language",
+      "noMatch": "No language matches “{{query}}”. Voice Workspace's models cover about 100 languages; more are in settings.",
       "menusIn": "Menus in <b>{{language}}</b>",
       "chinese": {
-        "question": "You speak {{languages}}. Which characters should Handy write?",
+        "question": "You speak {{languages}}. Which characters should Voice Workspace write?",
         "label": "Chinese characters",
         "zh-Hans": "Simplified",
         "zh-Hant": "Taiwan",
@@ -167,7 +166,7 @@
     },
     "try": {
       "title": "Give it a try!",
-      "subtitle": "Handy's in the corner to help walk you through it",
+      "subtitle": "Voice Workspace is in the corner to help walk you through it",
       "noteLabel": "Note",
       "placeholder": "New note",
       "hold": "Hold <keys/> and talk.",
@@ -195,14 +194,14 @@
     },
     "done": {
       "title": "You're all set",
-      "subMac": "Handy's in your menu bar now. Hold or tap <keys/> in any app to talk.",
-      "subTray": "Handy's in your system tray now. Hold or tap <keys/> in any app to talk.",
+      "subMac": "Voice Workspace is in your menu bar now. Hold or tap <keys/> in any app to talk.",
+      "subTray": "Voice Workspace is in your system tray now. Hold or tap <keys/> in any app to talk.",
       "hint": "You can change these later in Settings",
       "highFiveLabel": "High five",
-      "atLogin": "Start Handy when I log in",
+      "atLogin": "Start Voice Workspace when I log in",
       "finish": "Done",
       "panel": {
-        "name": "Handy",
+        "name": "Voice Workspace",
         "ready": "Ready",
         "languages": "Languages",
         "model": "Speech model",
@@ -325,7 +324,7 @@
       "title": "Voice Workspace (experimental)",
       "preferBatch": {
         "label": "Use full-recording recognition",
-        "description": "Recognize the complete recording on release instead of using streaming text. Can improve technical words and sentence punctuation in short dictation; longer recordings can take more time after release. No live word preview. Restart Handy after changing this so startup warm-up primes the chosen path."
+        "description": "Recognize the complete recording on release instead of using streaming text. Can improve technical words and sentence punctuation in short dictation; longer recordings can take more time after release. No live word preview. Restart Voice Workspace after changing this so startup warm-up primes the chosen path."
       },
       "retryRomanHistory": "Retry this recording to create Roman-Hinglish output. Raw recognition is hidden by default.",
       "showRaw": "Show raw recognition (recovery only)",
@@ -345,7 +344,7 @@
     "general": {
       "title": "General",
       "shortcut": {
-        "title": "Handy Shortcuts",
+        "title": "Voice Workspace Shortcuts",
         "description": "Configure keyboard shortcuts to trigger speech-to-text recording",
         "loading": "Loading shortcuts...",
         "none": "No shortcuts configured",
@@ -378,7 +377,7 @@
       },
       "preferredLanguages": {
         "title": "Preferred Languages",
-        "description": "The languages you speak. Handy uses them to recommend models.",
+        "description": "The languages you speak. Voice Workspace uses them to recommend models.",
         "noMatch": "No language matches “{{query}}”",
         "weak": "No model recognizes {{languages}} well yet."
       },
@@ -405,17 +404,17 @@
         "fits": "For your languages",
         "untested": "Untested"
       },
-      "untestedNote": "Not tested with Handy. They may be slower or make more mistakes.",
+      "untestedNote": "Not tested with Voice Workspace. They may be slower or make more mistakes.",
       "untestedHidden_one": "{{count}} more model isn’t tuned for dictation. Search to find it.",
       "untestedHidden_other": "{{count}} more models aren’t tuned for dictation. Search to find one.",
-      "emptyYours": "No models yet. Pick one below: it downloads, then Handy uses it.",
+      "emptyYours": "No models yet. Pick one below: it downloads, then Voice Workspace uses it.",
       "showMore": "Show {{count}} more",
       "showFewer": "Show fewer",
       "download": "Download and use",
       "downloadingThenUse": "{{percent}}% of {{total}}, then switches",
       "loading": "Loading…",
       "deleteAsk": "Delete {{name}}? It frees {{size}}.",
-      "deleteAskActive": "Delete {{name}}? Handy can’t transcribe until you pick another.",
+      "deleteAskActive": "Delete {{name}}? Voice Workspace can’t transcribe until you pick another.",
       "cancel": "Cancel",
       "deleteModel": "Delete {{name}}",
       "cancelDownload": "Stop downloading {{name}}",
@@ -429,7 +428,7 @@
         "marks": "? hasn’t been measured yet. — doesn’t hear that language."
       },
       "retiredNotice": {
-        "title": "Old models no longer work with Handy",
+        "title": "Old models no longer work with Voice Workspace",
         "description": "They're taking up {{size}} on your computer.",
         "delete": "Delete models",
         "deleted": "Deleted old models",
@@ -437,7 +436,7 @@
       },
       "rescan": {
         "label": "Rescan",
-        "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Handy"
+        "tooltip": "Rescan for models added to the models folder or Hugging Face cache outside Voice Workspace"
       }
     },
     "languages": {
@@ -503,11 +502,11 @@
       },
       "autostart": {
         "label": "Launch on Startup",
-        "description": "Automatically start Handy when you log in to your computer."
+        "description": "Automatically start Voice Workspace when you log in to your computer."
       },
       "showTrayIcon": {
         "label": "Show Tray Icon",
-        "description": "Display the Handy icon in the system tray."
+        "description": "Display the Voice Workspace icon in the system tray."
       },
       "overlay": {
         "style": {
@@ -736,18 +735,6 @@
         "lineCount": "{{count}} lines",
         "empty": "Waiting for logs… Entries appear here as the app emits them."
       },
-      "updateChecks": {
-        "label": "Check for Updates",
-        "description": "Automatically check for new versions of Handy",
-        "lockedDescription": "Disabled by system configuration (HANDY_DISABLE_UPDATER)"
-      },
-      "whatsNewPreview": {
-        "title": "Preview What's New",
-        "description": "Open the latest bundled release note without marking it as seen",
-        "button": "Preview",
-        "noNotes": "No bundled release notes found",
-        "error": "Failed to preview release notes"
-      },
       "onboardingPreview": {
         "title": "Preview Onboarding",
         "description": "Preview onboarding screens without changing permissions, models, or completion state",
@@ -843,7 +830,7 @@
       },
       "keyboardDiagnostic": {
         "title": "Keyboard Diagnostic",
-        "description": "Checks whether keyboard events reach Handy. Only event counts are recorded — never which keys you press.",
+        "description": "Checks whether keyboard events reach Voice Workspace. Only event counts are recorded — never which keys you press.",
         "run": "Run 10s diagnostic",
         "running": "Listening… press your shortcut a few times (e.g. Option+Space)",
         "secureInputLabel": "Secure Input",
@@ -857,7 +844,7 @@
         "mouse": "Mouse",
         "verdictBlocked": "Secure Input is blocking key events — keyed shortcuts cannot work until it is resolved.",
         "verdictSuspicious": "Modifier events arrived but no key events — something is suppressing keys even though Secure Input reports disabled. Please report this on GitHub.",
-        "verdictOk": "Key events are reaching Handy normally.",
+        "verdictOk": "Key events are reaching Voice Workspace normally.",
         "verdictNoEvents": "No events captured — did you press any keys during the test?",
         "failed": "Diagnostic failed: {{error}}"
       }
@@ -866,53 +853,31 @@
       "title": "About",
       "version": {
         "title": "Version",
-        "description": "Current version of Handy"
-      },
-      "whatsNewUpdates": {
-        "label": "Show What's New",
-        "description": "Show release notes after Handy updates"
+        "description": "Current version of Voice Workspace"
       },
       "appDataDirectory": {
         "title": "App Data Directory",
-        "description": "Location where Handy stores its data"
+        "description": "Location where Voice Workspace stores its data"
       },
       "sourceCode": {
         "title": "Source Code",
-        "description": "View source code and contribute",
+        "description": "View this app's source code",
         "button": "View on GitHub"
-      },
-      "supportDevelopment": {
-        "title": "Support Development",
-        "description": "Help us continue building Handy",
-        "button": "Donate"
       },
       "acknowledgments": {
         "title": "Acknowledgments",
         "ggml": {
           "title": "ggml",
           "description": "High-performance tensor library for on-device machine learning inference",
-          "details": "Handy's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
+          "details": "Voice Workspace's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
+        },
+        "handy": {
+          "title": "Handy",
+          "description": "The open-source dictation app this project is built on",
+          "details": "Voice Workspace started from Handy by CJ Pais and contributors, used under the MIT License."
         }
       }
     }
-  },
-  "footer": {
-    "checkingUpdates": "Checking for updates...",
-    "updateAvailableShort": "Update available",
-    "upToDate": "Up to date",
-    "updateCheckingDisabled": "Update Checking Disabled",
-    "downloading": "Downloading... {{progress}}%",
-    "installing": "Installing...",
-    "preparing": "Preparing...",
-    "checkForUpdates": "Check for updates",
-    "portableUpdateTitle": "Manual update required",
-    "portableUpdateMessage": "Portable installs cannot be updated automatically. Download the installer for your system below, run it, and install to the same folder — your Data/ folder (settings, models, recordings) is kept in place.",
-    "portableUpdateButton": "Download installer",
-    "portableUpdateBrowseMessage": "Portable installs cannot be updated automatically. Download the latest version for your system from GitHub Releases and install it to the same folder — your Data/ folder (settings, models, recordings) is kept in place.",
-    "portableUpdateBrowseButton": "Open GitHub Releases"
-  },
-  "whatsNew": {
-    "title": "New in Handy v{{version}}"
   },
   "common": {
     "loading": "Loading...",
@@ -941,13 +906,9 @@
     "pasteFailed": "Text could not be pasted into the active application.",
     "transcriptionFailedTitle": "Transcription Failed"
   },
-  "appLanguage": {
-    "title": "Application Language",
-    "description": "Change the language of the Handy interface"
-  },
   "theme": {
     "title": "Application Theme",
-    "description": "Choose whether Handy follows your system theme or stays light or dark",
+    "description": "Choose whether Voice Workspace follows your system theme or stays light or dark",
     "options": {
       "system": "System",
       "light": "Light",

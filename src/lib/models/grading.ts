@@ -3,7 +3,7 @@ import {
   modelMatchesLanguage,
   type CatalogModel,
   type MachineTier,
-} from "@handy-computer/models";
+} from "@/lib/model-catalog";
 import {
   errorFor,
   geoMean,

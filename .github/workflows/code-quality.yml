@@ -1,4 +1,5 @@
 name: "code quality"
+
 on:
   workflow_dispatch:
   push:
@@ -7,26 +8,28 @@ on:
       - "src/**"
       - "src-tauri/src/catalog/catalog.json"
       - "scripts/**"
+      - "tests/**"
+      - "index.html"
       - "package.json"
       - "bun.lock"
-      - ".eslintrc*"
       - "eslint.config.*"
       - ".prettierrc*"
       - "tsconfig*"
-      - "tailwind.config.*"
+      - "vite.config.*"
       - ".github/workflows/**"
   pull_request:
     paths:
       - "src/**"
       - "src-tauri/src/catalog/catalog.json"
       - "scripts/**"
+      - "tests/**"
+      - "index.html"
       - "package.json"
       - "bun.lock"
-      - ".eslintrc*"
       - "eslint.config.*"
       - ".prettierrc*"
       - "tsconfig*"
-      - "tailwind.config.*"
+      - "vite.config.*"
       - ".github/workflows/**"
 
 permissions:
@@ -37,35 +40,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  import-frontend:
-    uses: ./.github/workflows/upstream-import-checks.yml
-
-  code-quality:
-    runs-on: ubuntu-latest
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          bun-version: latest
+          persist-credentials: false
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: "1.4.2"
 
-      - name: Check translation consistency
-        run: bun run check:translations
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Check model language coverage
         run: bun run check:model-languages
 
-      - name: Check bundled model catalog matches @handy-computer/models
-        run: bun run check:catalog
-
       - name: Test keyboard utilities
         run: bun run test:keyboard
+
+      - name: Test retained history delivery
+        run: bun src/components/settings/history/deliveryText.test.ts
 
       - name: Run ESLint
         run: bun run lint
 
-      - name: Run prettier
+      - name: Check formatting (Prettier and cargo fmt)
         run: bun run format:check
+
+      - name: Build and type-check the frontend
+        run: bun run build

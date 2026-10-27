@@ -8,16 +8,13 @@ import {
   LanguageSearchField,
   useLanguagePicker,
 } from "../../shared/LanguagePicker";
-import HandyTextLogo from "../../icons/HandyTextLogo";
+import AppWordmark from "../../icons/AppWordmark";
 import { OnboardingShell, ScreenHeader } from "../OnboardingShell";
-import { AppLanguageMenu } from "../AppLanguageMenu";
 import { useOnboardingStore } from "../onboardingStore";
 import { CHINESE_SCRIPTS, isChinese } from "@/lib/utils/languageSuggestions";
 import { CURATED_ASR, isWeakLanguage } from "@/lib/models/catalog";
-import { modelMatchesLanguage } from "@handy-computer/models";
-import { getSupportedLanguage } from "@/i18n";
+import { modelMatchesLanguage } from "@/lib/model-catalog";
 import { languageList } from "@/lib/constants/languages";
-import { useSettings } from "@/hooks/useSettings";
 
 // The mascot waves on the first visit only.
 let waved = false;
@@ -30,8 +27,7 @@ interface WelcomeProps {
 /** Screen 1: greeting, spoken languages, and Chinese script. */
 export const Welcome: React.FC<WelcomeProps> = ({ progress, onContinue }) => {
   const { t, i18n } = useTranslation();
-  const { updateSetting } = useSettings();
-  const { languages, script, modelId, preview, set } = useOnboardingStore();
+  const { languages, script, modelId, set } = useOnboardingStore();
   const picker = useLanguagePicker({
     languages,
     onChange: (next) => {
@@ -68,17 +64,9 @@ export const Welcome: React.FC<WelcomeProps> = ({ progress, onContinue }) => {
         })
       : "";
 
-  // What the menus are in right now (a preview never writes the setting).
-  const uiLanguage = getSupportedLanguage(ui) || "en";
-  const changeUiLanguage = (code: string) => {
-    i18n.changeLanguage(code);
-    if (!preview) updateSetting("app_language", code);
-  };
-
   return (
     <OnboardingShell
       progress={progress}
-      pill={<AppLanguageMenu value={uiLanguage} onChange={changeUiLanguage} />}
       hint={hint}
       hintTone={weak.length ? "warning" : "quiet"}
       primary={
@@ -95,7 +83,7 @@ export const Welcome: React.FC<WelcomeProps> = ({ progress, onContinue }) => {
       <div className="flex h-full min-h-0 flex-col items-center px-gutter pt-[6px] pb-[4px] text-center">
         <div className="mb-[10px] inline-flex items-end gap-[8px] leading-none">
           <Mascot size={54} animation={wave ? "wave" : null} />
-          <HandyTextLogo width={112} className="mb-[4px] block" />
+          <AppWordmark className="mb-[4px]" />
         </div>
         <ScreenHeader
           title={t("onboarding.welcome.title")}

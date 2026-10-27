@@ -1,5 +1,5 @@
 /**
- * Grades, speeds and picks from @handy-computer/models (the same catalog as
+ * Grades, speeds and picks from the vendored model catalog (the same catalog as
  * src-tauri/src/catalog/catalog.json).
  */
 import {
@@ -9,7 +9,7 @@ import {
   modelMatchesLanguage,
   type CatalogModel,
   type MachineTier,
-} from "@handy-computer/models";
+} from "@/lib/model-catalog";
 import type { GradeLetter } from "@/components/shared/GradeChip";
 
 export type { CatalogModel, MachineTier };
