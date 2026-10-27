@@ -3,7 +3,9 @@ name: "Windows x64 build"
 # Manual, unsigned build of the Windows x64 voice-workspace.exe with the Vulkan GPU backend, for
 # the x64 laptop's test runtime. No secrets, no signing, no release upload, read-only token. The
 # installers are skipped; the artifact is the exe plus the DLLs it needs beside it.
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -118,14 +120,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "voice-workspace.exe --list-devices failed" }
           if ($devices -notmatch "kind=cpu") { throw "x64 build did not expose its CPU device" }
 
-          Get-ChildItem stage -File | Get-FileHash -Algorithm SHA256 |
-            ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } |
+          # Tray icons, sounds and the voice-activity model are read from resources/ beside the exe.
+          Copy-Item src-tauri/resources stage/resources -Recurse
+          $root = (Resolve-Path stage).Path
+          Get-ChildItem stage -File -Recurse | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), $_.Path.Substring($root.Length + 1).Replace('\', '/') } |
             Tee-Object -FilePath stage/SHA256SUMS.txt
 
       - name: Upload artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: voice-workspace-windows-x64-${{ github.sha }}
-          path: stage/*
+          path: stage
           if-no-files-found: error
           retention-days: 7

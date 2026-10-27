@@ -1,0 +1,83 @@
+name: "Release"
+
+# Manual release: builds the Windows ARM64 and x64 apps from the chosen commit and publishes them
+# as GitHub Release v<version>, where <version> comes from src-tauri/tauri.conf.json. Each zip is a
+# ready-to-run folder (exe, DLLs, resources/) for the laptop with that processor; it holds no
+# settings, models or user data. Unsigned. Bump the version before releasing again.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.read.outputs.version }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Read and check the app version
+        id: read
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          cargo_version=$(sed -n 's/^version = "\(.*\)"$/\1/p' src-tauri/Cargo.toml | head -1)
+          npm_version=$(jq -r .version package.json)
+          if [ "$version" != "$cargo_version" ] || [ "$version" != "$npm_version" ]; then
+            echo "Version mismatch: tauri.conf.json $version, Cargo.toml $cargo_version, package.json $npm_version" >&2
+            exit 1
+          fi
+          if gh release view "v$version" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release v$version already exists; bump the version first." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  arm64:
+    needs: version
+    uses: ./.github/workflows/windows-arm64-build.yml
+
+  x64:
+    needs: version
+    uses: ./.github/workflows/windows-x64-build.yml
+
+  publish:
+    needs: [version, arm64, x64]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download both builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: voice-workspace-windows-*-${{ github.sha }}
+          path: builds
+
+      - name: Package and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir release
+          for arch in arm64 x64; do
+            dir="builds/voice-workspace-windows-$arch-$GITHUB_SHA"
+            (cd "$dir" && sha256sum -c SHA256SUMS.txt >/dev/null)
+            echo "$VERSION" > "$dir/VERSION.txt"
+            (cd "$dir" && zip -qr "$GITHUB_WORKSPACE/release/voice-workspace-windows-$arch.zip" .)
+          done
+          (cd release && sha256sum *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          gh release create "v$VERSION" release/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Voice Workspace $VERSION" \
+            --notes "Windows builds of commit $GITHUB_SHA. Use voice-workspace-windows-arm64.zip on the Snapdragon (ARM64) laptop and voice-workspace-windows-x64.zip on the Intel/NVIDIA (x64) laptop. Each zip is the app folder (exe, DLLs, resources/) without settings, models or history; install it with voice-workspace's scripts/install-desktop.ps1. Unsigned."
