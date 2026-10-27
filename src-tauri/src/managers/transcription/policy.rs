@@ -2,6 +2,7 @@
 //! choose between streaming, long-form chunking and a single run.
 
 use crate::engine_supervisor::LoadedInfo;
+use crate::settings::{AppSettings, ModelUnloadTimeout};
 
 /// What a model can do that decides how its audio is decoded.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -31,6 +32,9 @@ pub enum LiveDecode {
     /// Long audio is cut at pauses and each chunk decoded once its cut is
     /// certain.
     Chunked,
+    /// Full-recording mode with early chunks: each finished phrase is decoded
+    /// at a pause while the key is still held.
+    Phrases,
     /// Nothing until the recording stops; then it is decoded in batch.
     None,
 }
@@ -58,17 +62,29 @@ pub fn live_decode(model: ModelTraits, long_form_chunking: bool) -> LiveDecode {
     }
 }
 
-/// An explicit full-recording preference suppresses both live streams and live chunks.
+/// An explicit full-recording preference suppresses both live streams and
+/// live chunks; it only decodes finished phrases early when `early_phrases`.
 pub fn recording_decode(
     model: ModelTraits,
     long_form_chunking: bool,
     prefer_batch: bool,
+    early_phrases: bool,
 ) -> LiveDecode {
-    if prefer_batch {
-        LiveDecode::None
-    } else {
-        live_decode(model, long_form_chunking)
+    match (prefer_batch, early_phrases) {
+        (true, true) => LiveDecode::Phrases,
+        (true, false) => LiveDecode::None,
+        (false, _) => live_decode(model, long_form_chunking),
     }
+}
+
+/// Early phrase recognition needs the full-recording mode, the voice detector
+/// (a pause is a gap in the frames it passes) and a model that stays loaded
+/// between phrases.
+pub fn early_phrases_enabled(settings: &AppSettings) -> bool {
+    settings.prefer_batch_transcription
+        && settings.early_chunk_recognition
+        && settings.vad_enabled
+        && settings.model_unload_timeout != ModelUnloadTimeout::Immediately
 }
 
 /// Keep the opt-in full-recording path whole even when upstream chunking is enabled.
@@ -107,15 +123,24 @@ mod voice_workspace_tests {
                         streaming,
                         long_form,
                     };
-                    assert_eq!(recording_decode(model, chunking, true), LiveDecode::None);
+                    assert_eq!(
+                        recording_decode(model, chunking, true, false),
+                        LiveDecode::None
+                    );
+                    assert_eq!(
+                        recording_decode(model, chunking, true, true),
+                        LiveDecode::Phrases
+                    );
                     assert_eq!(
                         recording_batch_decode(model, chunking, true),
                         BatchDecode::Whole
                     );
-                    assert_eq!(
-                        recording_decode(model, chunking, false),
-                        live_decode(model, chunking)
-                    );
+                    for early in [false, true] {
+                        assert_eq!(
+                            recording_decode(model, chunking, false, early),
+                            live_decode(model, chunking)
+                        );
+                    }
                     assert_eq!(
                         recording_batch_decode(model, chunking, false),
                         batch_decode(model, chunking)
@@ -123,5 +148,28 @@ mod voice_workspace_tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn early_phrases_need_full_recording_vad_and_a_resident_model() {
+        let mut settings = crate::settings::get_default_settings();
+        settings.prefer_batch_transcription = true;
+        settings.early_chunk_recognition = true;
+        settings.vad_enabled = true;
+        settings.model_unload_timeout = ModelUnloadTimeout::Never;
+        assert!(early_phrases_enabled(&settings));
+
+        let mut off = settings.clone();
+        off.early_chunk_recognition = false;
+        assert!(!early_phrases_enabled(&off));
+        let mut streaming = settings.clone();
+        streaming.prefer_batch_transcription = false;
+        assert!(!early_phrases_enabled(&streaming));
+        let mut no_vad = settings.clone();
+        no_vad.vad_enabled = false;
+        assert!(!early_phrases_enabled(&no_vad));
+        let mut unloads = settings;
+        unloads.model_unload_timeout = ModelUnloadTimeout::Immediately;
+        assert!(!early_phrases_enabled(&unloads));
     }
 }

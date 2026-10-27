@@ -17,7 +17,9 @@ use anyhow::Result;
 use chunked::ChunkedDecode;
 use live::LiveSession;
 use log::{debug, error, info, warn};
-use policy::{recording_batch_decode, recording_decode, BatchDecode, ModelTraits};
+use policy::{
+    early_phrases_enabled, recording_batch_decode, recording_decode, BatchDecode, ModelTraits,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -34,11 +36,15 @@ use transcribe_cpp::{
 mod chunked;
 mod job;
 mod live;
+mod phrases;
 pub mod policy;
 
 pub use job::ChunkControl;
 
 const STREAM_PERF_LOG_INTERVAL: Duration = Duration::from_secs(5);
+/// A dictation that starts after this long without one re-warms the model
+/// while the user speaks: an idle model's first run is several times slower.
+const REWARM_AFTER_IDLE_MS: u64 = 15_000;
 
 pub(crate) fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
     if let Some(message) = payload.downcast_ref::<&str>() {
@@ -271,6 +277,8 @@ pub struct TranscriptionManager {
     /// True while a background job is queued or running. It holds the model,
     /// so one transcript is never written by two models.
     job_active: Arc<AtomicBool>,
+    /// True while an idle re-warm runs, so presses don't stack them.
+    rewarm_running: Arc<AtomicBool>,
 }
 
 impl TranscriptionManager {
@@ -291,6 +299,7 @@ impl TranscriptionManager {
             next_stream_worker_id: Arc::new(AtomicU64::new(1)),
             active_stream_worker: Arc::new(AtomicU64::new(0)),
             job_active: Arc::new(AtomicBool::new(false)),
+            rewarm_running: Arc::new(AtomicBool::new(false)),
         };
 
         // Start the idle watcher
@@ -652,38 +661,7 @@ impl TranscriptionManager {
         let settings = get_settings(&self.app_handle);
         if settings.preload_model {
             let warm_start = Instant::now();
-            let warm_options = RunOptions {
-                language: caps
-                    .languages
-                    .iter()
-                    .find(|lang| lang.as_str() == "en")
-                    .or_else(|| caps.languages.first())
-                    .cloned(),
-                family: (info.arch == "whisper").then(|| {
-                    RunExtension::Whisper(WhisperRunOptions {
-                        temperature: Some(0.0),
-                        temperature_inc: Some(0.0),
-                        ..Default::default()
-                    })
-                }),
-                ..Default::default()
-            };
-            let warm_result = (|| -> Result<()> {
-                let silence = vec![0.0; 16_000];
-                if caps.supports_streaming && !settings.prefer_batch_transcription {
-                    let stream =
-                        self.engine
-                            .start_stream(warm_options, StreamOptions::default(), |_| {})?;
-                    stream.feed(silence);
-                    if stream.finalize(false)?.is_none() {
-                        return Err(anyhow::anyhow!("Warm-up stream did not complete"));
-                    }
-                } else {
-                    self.engine.transcribe(silence, warm_options)?;
-                }
-                Ok(())
-            })();
-            match warm_result {
+            match self.warm_engine(&info, &settings) {
                 Ok(()) => info!("dictation_warmup_ms={}", warm_start.elapsed().as_millis()),
                 Err(err) => warn!(
                     "ASR startup warm-up failed; first dictation may be slower: {}",
@@ -719,6 +697,72 @@ impl TranscriptionManager {
             load_duration.as_millis()
         );
         Ok(())
+    }
+
+    /// Runs one second of discarded silence through the path a dictation will
+    /// use (a stream or one batch run), so its first real use is not cold.
+    fn warm_engine(&self, info: &LoadedInfo, settings: &AppSettings) -> Result<()> {
+        let caps = &info.capabilities;
+        let warm_options = RunOptions {
+            language: caps
+                .languages
+                .iter()
+                .find(|lang| lang.as_str() == "en")
+                .or_else(|| caps.languages.first())
+                .cloned(),
+            family: (info.arch == "whisper").then(|| {
+                RunExtension::Whisper(WhisperRunOptions {
+                    temperature: Some(0.0),
+                    temperature_inc: Some(0.0),
+                    ..Default::default()
+                })
+            }),
+            ..Default::default()
+        };
+        let silence = vec![0.0; 16_000];
+        if caps.supports_streaming && !settings.prefer_batch_transcription {
+            let stream =
+                self.engine
+                    .start_stream(warm_options, StreamOptions::default(), |_| {})?;
+            stream.feed(silence);
+            if stream.finalize(false)?.is_none() {
+                return Err(anyhow::anyhow!("Warm-up stream did not complete"));
+            }
+        } else {
+            self.engine.transcribe(silence, warm_options)?;
+        }
+        Ok(())
+    }
+
+    /// Called when a dictation starts. After [`REWARM_AFTER_IDLE_MS`] without
+    /// one, warms the loaded model in the background while the user speaks.
+    /// The warm-up queues ahead of the recording's own runs on the engine,
+    /// and a failure only costs the speed it would have saved.
+    pub fn rewarm_if_idle(&self) {
+        let settings = get_settings(&self.app_handle);
+        if !settings.preload_model {
+            return;
+        }
+        let idle_ms = Self::now_ms().saturating_sub(self.last_activity.load(Ordering::Relaxed));
+        if idle_ms < REWARM_AFTER_IDLE_MS || self.rewarm_running.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        let manager = self.clone();
+        thread::spawn(move || {
+            let loading = manager.is_loading.lock().map(|l| *l).unwrap_or(true);
+            if let (false, Some(info)) = (loading, manager.engine.loaded()) {
+                let started = Instant::now();
+                match manager.warm_engine(&info, &settings) {
+                    Ok(()) => info!(
+                        "dictation_rewarm_ms={} idle_s={}",
+                        started.elapsed().as_millis(),
+                        idle_ms / 1000
+                    ),
+                    Err(err) => warn!("Idle re-warm failed: {}", err),
+                }
+            }
+            manager.rewarm_running.store(false, Ordering::Release);
+        });
     }
 
     /// Kicks off the model loading in a background thread if it's not already loaded
@@ -875,6 +919,7 @@ impl TranscriptionManager {
             ModelTraits::of(&info),
             settings.long_form_chunking,
             settings.prefer_batch_transcription,
+            early_phrases_enabled(&settings),
         );
         let Some(mut session) = LiveSession::begin(self, mode, &info, &model_id) else {
             // Nothing to decode live: the recording is transcribed in batch.
@@ -884,7 +929,24 @@ impl TranscriptionManager {
         };
         self.touch_activity();
 
-        while let Ok(cmd) = rx.recv() {
+        let poll = session.poll_interval();
+        loop {
+            let cmd = match poll {
+                Some(poll) => match rx.recv_timeout(poll) {
+                    Ok(cmd) => cmd,
+                    Err(mpsc::RecvTimeoutError::Timeout) => {
+                        if !cancelled.load(Ordering::Acquire) {
+                            session.tick();
+                        }
+                        continue;
+                    }
+                    Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                },
+                None => match rx.recv() {
+                    Ok(cmd) => cmd,
+                    Err(_) => break,
+                },
+            };
             match cmd {
                 StreamCmd::Feed(pcm) => {
                     // Audio queued ahead of a cancel is dropped, not decoded.

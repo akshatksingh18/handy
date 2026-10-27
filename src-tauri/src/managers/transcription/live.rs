@@ -1,13 +1,16 @@
 //! A recording's live decode: a stream the model decodes as audio arrives,
-//! or long-form chunks decoded as the recording goes.
+//! long-form chunks decoded as the recording goes, or finished phrases
+//! decoded at pauses (the full-recording mode's early chunks).
 
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use log::{debug, error, info};
 use transcribe_cpp::StreamOptions;
 
 use super::chunked::ChunkedDecode;
+use super::phrases::{self, PhraseDecode};
 use super::policy::LiveDecode;
 use super::{
     effective_language_for_model, emit_stream_text, join_chunks, lock_perf, run_setup,
@@ -26,6 +29,7 @@ pub(super) struct LiveSession<'a> {
 enum LiveDecoder<'a> {
     Stream(StreamSession<'a>),
     Chunked(Box<ChunkedDecode<'a>>),
+    Phrases(Box<PhraseDecode<'a>>),
 }
 
 /// A decoded text and the language the model detected in it, if any.
@@ -65,6 +69,15 @@ impl<'a> LiveSession<'a> {
                     settings.vad_backend,
                 )))
             }
+            LiveDecode::Phrases => {
+                info!("Early phrase recognition started (model '{}')", model_id);
+                LiveDecoder::Phrases(Box::new(PhraseDecode::new(
+                    tm,
+                    tm.engine.cancel_mark(),
+                    setup.run_options.clone(),
+                    model_id,
+                )))
+            }
         };
         Some(Self { setup, decoder })
     }
@@ -73,6 +86,23 @@ impl<'a> LiveSession<'a> {
         match &mut self.decoder {
             LiveDecoder::Stream(stream) => stream.feed(pcm),
             LiveDecoder::Chunked(chunks) => chunks.push(pcm),
+            LiveDecoder::Phrases(phrases) => phrases.push(pcm),
+        }
+    }
+
+    /// How long the worker may wait for a frame before calling
+    /// [`tick`](Self::tick); `None` to wait for the next command.
+    pub(super) fn poll_interval(&self) -> Option<Duration> {
+        match self.decoder {
+            LiveDecoder::Phrases(_) => Some(phrases::POLL),
+            LiveDecoder::Stream(_) | LiveDecoder::Chunked(_) => None,
+        }
+    }
+
+    /// No frame arrived within the poll interval.
+    pub(super) fn tick(&mut self) {
+        if let LiveDecoder::Phrases(phrases) = &mut self.decoder {
+            phrases.tick();
         }
     }
 
@@ -82,6 +112,7 @@ impl<'a> LiveSession<'a> {
         let decoded = match self.decoder {
             LiveDecoder::Stream(stream) => stream.finish()?,
             LiveDecoder::Chunked(chunks) => finish_chunks(*chunks, recorded_samples)?,
+            LiveDecoder::Phrases(phrases) => phrases.finish(recorded_samples)?.map(join_chunks),
         };
         Ok(decoded.map(|(text, model_detected_language)| RunOutcome {
             setup: self.setup,

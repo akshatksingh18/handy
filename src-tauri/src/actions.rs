@@ -5,7 +5,9 @@ use crate::audio_toolkit::VadPolicy;
 use crate::managers::audio::{recording_error_type, AudioRecordingManager};
 use crate::managers::history::HistoryManager;
 use crate::managers::model::ModelManager;
-use crate::managers::transcription::policy::{recording_decode, LiveDecode, ModelTraits};
+use crate::managers::transcription::policy::{
+    early_phrases_enabled, recording_decode, LiveDecode, ModelTraits,
+};
 use crate::managers::transcription::StreamWorkKind;
 use crate::managers::transcription::TranscriptionManager;
 use crate::settings::{get_settings, AppSettings, OverlayStyle, APPLE_INTELLIGENCE_PROVIDER_ID};
@@ -489,6 +491,8 @@ impl ShortcutAction for TranscribeAction {
                 return;
             }
         }
+        // Before the stream worker touches the idle timer.
+        tm.rewarm_if_idle();
 
         let binding_id = binding_id.to_string();
         RECORDING_SESSION.fetch_add(1, Ordering::SeqCst);
@@ -532,6 +536,7 @@ impl ShortcutAction for TranscribeAction {
             expected_model,
             settings.long_form_chunking,
             settings.prefer_batch_transcription,
+            early_phrases_enabled(&settings),
         ) != LiveDecode::None
         {
             tm.start_stream();
