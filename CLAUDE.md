@@ -47,7 +47,12 @@ laptop still runs an older build until that script is run there.
   reviewed port. Library pins (`transcribe-cpp`, `handy-recorder`, the `cjpais` git pins) change
   only on purpose; `development.md` lists them.
 - The portable marker text stays `Handy Portable Mode` so existing portable `Data/` folders keep
-  loading; do not change it without a migration.
+  loading; do not change it without a migration. Other internal "handy" names are also kept on
+  purpose because nothing user-visible depends on them and renaming risks existing data:
+  the `handy_app_lib` crate name, `HANDY_*` environment variables, the `handy_keys` module,
+  `handy-*.wav` recording names, the `handy.png` tray resource names and the x64 laptop's
+  `%LOCALAPPDATA%\handy-build-deps` folder. The pink palette is inherited and kept; only the logos
+  are this project's own.
 - Full builds and test suites run on GitHub Actions; locally run only quick targeted checks.
 - Releases: bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` (and its
   lock entry) and `package.json` together, then run `release.yml`; it refuses an existing tag.
