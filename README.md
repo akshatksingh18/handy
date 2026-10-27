@@ -34,13 +34,15 @@ built on GitHub Actions and installed by hand.
 
 Windows is the tested platform, on two laptops: x64 with an NVIDIA GPU
 (Vulkan) and Snapdragon X ARM64 (CPU). The macOS and Linux code is kept from
-Handy but is not built or tested here.
+Handy but neither is a target: CI compiles and unit-tests the app on Linux,
+nothing is packaged or run there, and macOS is not built.
 
 ## Build and run
 
-- **Windows ARM64:** run the `Windows ARM64 build` workflow in GitHub Actions
-  and download its artifact (`voice-workspace.exe`, the VC++ runtime DLLs and
-  `SHA256SUMS.txt`).
+- **Windows ARM64 or x64:** run the `Windows ARM64 build` or `Windows x64
+  build` workflow in GitHub Actions and download its artifact
+  (`voice-workspace.exe`, the DLLs it needs and `SHA256SUMS.txt`). Copy
+  `src-tauri/resources` beside the exe as `resources/`.
 - **Other targets and development:** see [BUILD.md](BUILD.md) and
   [windows-local-setup.md](windows-local-setup.md).
 - **Portable mode:** a file named `portable` next to the exe keeps settings,

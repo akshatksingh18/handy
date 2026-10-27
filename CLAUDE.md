@@ -10,7 +10,7 @@ Product requirements, evaluation and test results live in `../voice-workspace/`.
 (`73c09585`), this project's dictation features and the standalone makeover. The Snapdragon X
 laptop runs the CI-built ARM64 exe from `main`; the combined live retest (idle re-warm, early
 phrases, rename) is the next acceptance step. The x64 laptop still runs an older build until it
-is rebuilt from `main`.
+installs the CI-built x64 exe from `main`; neither laptop needs a local compiler.
 
 ## Files
 
@@ -31,7 +31,8 @@ is rebuilt from `main`.
 - `src/` — React/TypeScript interface; `src/lib/model-catalog/` is the vendored model catalog
   library (see its README for provenance and license).
 - `tests/` — Playwright smoke tests.
-- `.github/workflows/` — code quality, Rust tests, Playwright and the manual Windows ARM64 build.
+- `.github/workflows/` — code quality, Rust tests (on Linux), Playwright and the manual Windows
+  ARM64 and x64 builds.
 - `package.json` and `bun.lock` — Bun-managed frontend dependencies.
 - `LICENSE` — MIT license with Handy's original copyright notice; keep it.
 

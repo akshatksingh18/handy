@@ -19,6 +19,12 @@ no secrets.
   that `--list-devices` shows a CPU and no GPU, and uploads `voice-workspace.exe`, the eight ARM64
   VC++ runtime DLLs and `SHA256SUMS.txt` as a 7-day artifact. There are no `ggml*`/`transcribe`
   DLLs in this build.
+- `windows-x64-build.yml` (manual only): the unsigned `x86_64-pc-windows-msvc` exe with the Vulkan
+  GPU backend for the x64 NVIDIA laptop, on `windows-2025`, Rust 1.98.0, Vulkan SDK 1.4.309.0 and
+  `spirv-headers` from vcpkg. It checks that the Vulkan backend DLL was staged and that
+  `--list-devices` runs (the runner has no GPU, so only its CPU shows), and uploads
+  `voice-workspace.exe`, the transcription runtime DLLs, the VC++ runtime with OpenMP and
+  `SHA256SUMS.txt` as a 7-day artifact.
 
 There is no release, signing or installer workflow; Handy's were removed. Run a workflow on a
 branch with `gh workflow run <file> --ref <branch>`; pushing a branch other than `main` starts
@@ -66,12 +72,21 @@ GitHub as their source.
 
 ## x64 laptop (NVIDIA)
 
-The x64 build is local: Rust 1.98, Visual Studio Build Tools 2026, Bun 1.4.2, Vulkan SDK
-1.4.309.0, ONNX Runtime 1.24.2 and `spirv-headers:x64-windows` from vcpkg, with native
-dependencies under `%LOCALAPPDATA%\handy-build-deps` (an existing local folder name). Its running
-copy is still an older Handy-era build; rebuild it from `main` before the next test there and
-rename its runtime folder to match `../voice-workspace/setup.md`.
+Like the Snapdragon laptop, it no longer needs a local build: download the
+`windows-x64-build.yml` artifact, check `SHA256SUMS.txt`, and replace the exe and DLLs in its
+runtime folder, keeping the old exe as a rollback copy. Copy `src-tauri/resources` over the
+runtime's `resources/` too: the current engine needs `silero-vad-v6.2-F32.gguf`, which Handy-era
+runtimes lack. Its running copy is still an older Handy-era build in `runtime/handy/`; the steps
+are in `../voice-workspace/tasks.md`. The first run on `main`
+([run 40496231458](https://github.com/akshatksingh18/voice-workspace-desktop/actions/runs/40496231458),
+commit `411d0a09`, about 26 min on a cold cache) passed: it staged `voice-workspace.exe`
+(`d345a5dc…0c37`), `transcribe.dll`, `ggml.dll`, `ggml-base.dll`, `ggml-vulkan.dll`, ten per-CPU
+`ggml-cpu-*` modules and the VC++ runtime with `vcomp140.dll`. On the GPU-less runner it listed
+only the CPU; the NVIDIA device and live use need that laptop.
 
+A local build remains possible with Rust 1.98, Visual Studio Build Tools 2026, Bun 1.4.2, Vulkan
+SDK 1.4.309.0 and `spirv-headers:x64-windows` from vcpkg (installed on that laptop under
+`%LOCALAPPDATA%\handy-build-deps`, an existing folder name). ONNX Runtime is no longer needed.
 Windows Device Guard blocks Bun's generated `node_modules\.bin\tsc.exe` shim, so run the two
 frontend stages directly, then the Tauri build without its frontend hook:
 
@@ -83,8 +98,6 @@ $bun = Join-Path $env:APPDATA 'npm\bun.ps1'
 
 $deps = Join-Path $env:LOCALAPPDATA 'handy-build-deps'
 $env:VULKAN_SDK = Join-Path $deps 'VulkanSDK\1.4.309.0'
-$env:ORT_LIB_LOCATION = Join-Path $deps 'onnxruntime-win-x64-1.24.2\lib'
-$env:ORT_PREFER_DYNAMIC_LINK = '1'
 $env:CMAKE_PREFIX_PATH = (Join-Path $deps 'vcpkg\installed\x64-windows').Replace('\', '/')
 $cmakeBin = 'C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin'
 $env:PATH = "$(Join-Path $env:APPDATA 'npm');$env:VULKAN_SDK\Bin;$cmakeBin;$env:PATH"
@@ -92,12 +105,18 @@ $config = '{"build":{"beforeBuildCommand":""}}'
 bun x tauri build --no-bundle --ci --config $config
 ```
 
-The output is `src-tauri\target\release\voice-workspace.exe` plus the staged transcription
-runtime DLLs. Use this Tauri build rather than bare `cargo build --release`: Tauri embeds the
-production frontend, while a bare Cargo release can still point at the development URL. The last
-verified x64 build (Handy-era) stayed alive for 20 s after `--start-hidden --debug`, initialized
-its settings, history and WebView2 profile, and passed NVIDIA/Vulkan inference; its accuracy and
-latency results are in the Voice Workspace documents.
+Use this Tauri build rather than bare `cargo build --release`: Tauri embeds the production
+frontend, while a bare Cargo release can still point at the development URL. The last verified x64
+build (Handy-era) stayed alive for 20 s after `--start-hidden --debug`, initialized its settings,
+history and WebView2 profile, and passed NVIDIA/Vulkan inference; its accuracy and latency results
+are in the Voice Workspace documents.
+
+## macOS and Linux
+
+Both laptops are Windows, so neither platform is a target. The code is kept because removing it
+would be a large, risky edit for no gain. `test.yml` compiles the app and runs its Rust tests on
+Linux on every backend change, so Linux at least builds; nothing is packaged or run there, and
+macOS is not compiled at all.
 
 ## Local ASR diagnostic
 
