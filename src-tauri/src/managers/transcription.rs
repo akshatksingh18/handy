@@ -1662,7 +1662,13 @@ fn post_process_transcription_text(
             settings.filler_word_removal_enabled,
         );
 
-        normalize_transcription_output(&without_fillers)
+        let normalized = normalize_transcription_output(&without_fillers);
+
+        if settings.technical_formatting_enabled {
+            crate::audio_toolkit::apply_technical_formatting(&normalized)
+        } else {
+            normalized
+        }
     })
 }
 
@@ -2335,6 +2341,35 @@ mod tests {
             &supported,
         );
         assert_eq!(corrected, "i use Handy every day");
+
+        let shortcut_input =
+            "Yes I guess, continue with left alt space using this voice workspace only."
+                .to_string();
+        let formatted = post_process_transcription_text(
+            shortcut_input.clone(),
+            &settings,
+            false,
+            &evidence,
+            &supported,
+        );
+        assert_eq!(
+            formatted,
+            "Yes I guess, continue with Left Alt + Space using this voice workspace only."
+        );
+
+        let mut settings_disabled = settings.clone();
+        settings_disabled.technical_formatting_enabled = false;
+        let unformatted = post_process_transcription_text(
+            shortcut_input,
+            &settings_disabled,
+            false,
+            &evidence,
+            &supported,
+        );
+        assert_eq!(
+            unformatted,
+            "Yes I guess, continue with left alt space using this voice workspace only."
+        );
     }
 }
 

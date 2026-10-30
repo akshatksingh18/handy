@@ -1,6 +1,6 @@
 [package]
 name = "voice-workspace"
-version = "0.10.0"
+version = "0.10.1"
 description = "Voice Workspace: local desktop dictation"
 authors = ["Akshat Kumar Singh"]
 edition = "2021"

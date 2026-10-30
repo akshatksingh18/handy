@@ -41,6 +41,16 @@ stays dormant for recovery, and its synthetic tests never proved acoustic or mea
 - **Custom Words** stay post-ASR fuzzy matching on Parakeet. A prefix fix keeps ordinary preceding
   words when a better suffix match exists ("a post-Gree SQL" → "a PostgreSQL"). The test profile
   seeds PostgreSQL, Kubernetes and REST API at threshold 0.18; this is manual, not learning.
+- **Technical & shortcut formatting normalizer** (`technical_formatting_enabled`, on by default
+  with UI toggle in Settings → Advanced → Transcription): automatically detects and formats
+  spoken keyboard shortcuts (e.g. "continue with left alt space" → "continue with Left Alt + Space",
+  "ctrl c", "ctrl shift p", "alt f4", "win r"), identifier casing commands (`camel case`,
+  `snake case`, `kebab case`, `constant case`, `pascal case`, `dot case`), CLI flags (`double dash flag`
+  → `--flag`, `minus m` → `-m`), code operators (`fat arrow` → `=>`, `double equals` → `==`,
+  `logical and` → `&&`, `std::fs`), web/file extensions (`.com`, `.json`, `.ts`), and canonical
+  developer casing for pervasive terms (`GitHub`, `PostgreSQL`, `REST API`, `OAuth`, `JWT`, `ARM64`).
+  Protected against prose false positives (e.g. "a dash of salt", "10 minus 5", "control a few variables").
+  Verified with 41 unit tests in `src-tauri/src/audio_toolkit/technical_formatter.rs`.
 - **Roman Hinglish (dormant):** local Hindi-script conversion before and after optional cleanup,
   fail-closed on unsupported symbols, never combined with translation. History shows delivery
   text; _Show raw recognition (recovery only)_ reveals the preserved ASR.

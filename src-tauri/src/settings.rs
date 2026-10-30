@@ -512,6 +512,8 @@ pub struct AppSettings {
     pub external_script_path: Option<String>,
     #[serde(default = "default_filler_word_removal_enabled")]
     pub filler_word_removal_enabled: bool,
+    #[serde(default = "default_technical_formatting_enabled")]
+    pub technical_formatting_enabled: bool,
     #[serde(default)]
     pub custom_filler_words: Option<Vec<String>>,
     /// Fresh installs default from the OS locale; existing stores are migrated
@@ -605,6 +607,10 @@ fn default_long_form_chunking() -> bool {
 }
 
 fn default_filler_word_removal_enabled() -> bool {
+    true
+}
+
+fn default_technical_formatting_enabled() -> bool {
     true
 }
 
@@ -1016,6 +1022,7 @@ pub fn get_default_settings() -> AppSettings {
         typing_tool: default_typing_tool(),
         external_script_path: None,
         filler_word_removal_enabled: default_filler_word_removal_enabled(),
+        technical_formatting_enabled: default_technical_formatting_enabled(),
         custom_filler_words: None,
         chinese_script: default_chinese_script(),
         transcribe_accelerator: TranscribeAcceleratorSetting::default(),

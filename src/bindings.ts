@@ -1011,7 +1011,7 @@ transcriptionJob: "transcription-job"
  * Field-level defaults below take precedence where present.
  */
 export type AppSettings = {
-roman_hinglish_enabled?: boolean; preload_model?: boolean; prefer_batch_transcription?: boolean; early_chunk_recognition?: boolean;
+technical_formatting_enabled?: boolean; roman_hinglish_enabled?: boolean; preload_model?: boolean; prefer_batch_transcription?: boolean; early_chunk_recognition?: boolean;
 /**
  * Internal settings schema marker for one-time migrations. Fresh installs
  * start at the current version; existing stores missing this key are

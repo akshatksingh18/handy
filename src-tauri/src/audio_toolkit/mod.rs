@@ -3,6 +3,7 @@ pub mod chunking;
 pub mod constants;
 pub mod hinglish;
 pub mod lang_id;
+pub mod technical_formatter;
 pub mod text;
 pub mod utils;
 pub mod vad;
@@ -12,6 +13,7 @@ pub use audio::{
     CaptureSink, CaptureVad, VadPolicy,
 };
 pub use lang_id::detect_output_language;
+pub use technical_formatter::apply_technical_formatting;
 pub use text::{
     apply_custom_words, normalize_transcription_output, remove_filler_words, OutputLanguageEvidence,
 };
